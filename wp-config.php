@@ -32,8 +32,8 @@ define('NONCE_SALT',       '5{Lrgy-aPiP:+[*{c#je(.l6[5tnq%+3d6 T/eDg-T^P5iy79r8e
 
 $table_prefix = 'wp_';
 
-
-
+define('JWT_AUTH_SECRET_KEY', 'clubinho-api-token');
+define('JWT_AUTH_CORS_ENABLE', true);
 
 
 /* That's all, stop editing! Happy blogging. */
