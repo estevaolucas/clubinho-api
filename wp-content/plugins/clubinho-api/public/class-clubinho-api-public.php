@@ -11,6 +11,89 @@ class Clubinho_API_Public extends WP_REST_Controller {
    */
   public function register_routes() {
 
+    register_rest_route( $this->namespace, '/create-user', [
+      [
+        'methods'             => WP_REST_Server::EDITABLE,
+        'callback'            => [$this, 'create_user'],
+        'args'                => [
+          'name' => [
+            'required' => true
+          ],
+          'email' => [
+            'required' => true,
+            'description' => 'E-mail inválido.',
+            'validate_callback' => function($email, $request, $key) {
+              $is_email_valid = filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+              $is_email_used = email_exists($email);
+
+              $message = null;
+              if (!$is_email_valid) {
+                $message = 'E-mail inválido';
+              } else if ($is_email_used) {
+                $message = 'E-mail já cadastrado';
+              }
+
+              if ($message) {
+                return new WP_Error('-', $message);
+              }
+            }
+          ],
+          'cpf' => [
+            'description' => 'CPF inválido',
+            'required' => true,
+            'validate_callback' => function($cpf, $request, $key) {
+              if (!$this->validate_cpf($cpf)) {
+                return new WP_Error('-', 'CPF inválido');
+              }
+
+              if (username_exists($cpf)) {
+                return new WP_Error('-', 'CPF já cadastrado.');
+              }
+            }
+          ],
+          'address' => [
+            'required' => false
+          ],
+          'zipcode' => [
+            'required' => false,
+            'validate_callback' => function($zipcode, $request, $key) {
+              if (!ereg('^[0-9]{5}(-)?[0-9]{3}$', trim($zipcode))) {
+                return new WP_Error('-', 'CEP inválido');
+              }
+            }
+          ],
+          'phone' => [
+            'required' => false,
+            'validate_callback' => function($phone) {
+              if (!ereg('^\([0-9]{2}\) [0-9]{4}-[0-9]{4,5}$', trim($phone))) {
+                return new WP_Error('-', 'Telefone inválido');
+              }
+            }
+          ],
+
+          'password' => [
+            'required' => true,
+            'validate_callback' => function($password, $request) {
+              if ($request->get_param('password_confirmation') !== $password) {
+                return new WP_Error('-', 'Password não confere');
+              }
+
+              if (strlen($password) < 5) {
+                return new WP_Error('-', 'Password precisa ter no mínimo 5 caracteres');
+              }
+
+              if (strlen($password) > 12) {
+                return new WP_Error('-', 'Password precisa ter no máximo 12 caracteres');
+              }
+            }
+          ],
+          'password_confirmation' => [
+            'required' => true
+          ]
+        ],
+      ]
+    ]);
+
     register_rest_route( $this->namespace, '/me', [
       [
         'methods'             => WP_REST_Server::READABLE,
@@ -26,11 +109,53 @@ class Clubinho_API_Public extends WP_REST_Controller {
         'callback'            => [$this, 'forgot_password'],
         'args'                => [
           'email', [
-            'default' => true
+            'required' => true
           ]
         ],
       ]
     ]);
+  }
+
+  public function create_user($request) {
+    $params = $request->get_params();
+    list($first, $last) = explode(' ', $params['name']);
+
+    $data = [
+      'user_login'   => $params['cpf'],
+      'user_pass'    => $params['password'],
+      'user_email'   => $params['email'],
+      'first_name'   => $first,
+      'last_name'    => $last,
+      'display_name' => $params['name']
+    ];
+
+    $user_id = wp_insert_user($data);
+
+    if (!is_wp_error($user_id)) { 
+      $acf_user_id = "user_{$user_id}";
+
+      update_field('cpf', $params['cpf'], $acf_user_id);
+
+      if ($params['address']) {
+        update_field('address', $params['address'], $acf_user_id);        
+      } 
+
+      if ($params['zipcode']) {
+        update_field('zipcode', $params['zipcode'], $acf_user_id);        
+      } 
+
+      if ($params['phone']) {
+        update_field('phone', $params['phone'], $acf_user_id);        
+      }       
+
+      return new WP_REST_Response(['message' => 'Usuário criado'], 200);
+    } else {
+      return new WP_Error(
+        'user-not-created', 
+        $user_id->get_error_message(), 
+        ['status' => 403]
+      );
+    }
   }
 
   public function get_user_data($request) {
@@ -55,27 +180,12 @@ class Clubinho_API_Public extends WP_REST_Controller {
         ]
       ]
     ];
-
-  //   if (function_exists('mycred')) {
-  //     $mycred = mycred();
-  //     $mycred->add_creds(
-  //   'reference',
-  //   $current_user->ID,
-  //   10,
-  //   'Evento'
-  // );
-
-  //     var_dump($mycred->get_users_balance($current_user->ID));
-  //     exit();
-  //   }
     
     return new WP_REST_Response($this->prepare_for_response($data), 200);
   }
 
   public function forgot_password( $request ) {
-
-    $params     = $request->get_params();
-    $email      = $params['email'];
+    $email      = $request->get_params('email');
     $email_sent = $this->send_forgot_password($email);
     
     if (!is_wp_error($email_sent)) {
@@ -172,5 +282,31 @@ class Clubinho_API_Public extends WP_REST_Controller {
 
   private function prepare_for_response( $data ) {
     return [ 'data' => $data ];
+  }
+
+  private function validate_cpf($cpf) {
+    $cpf = preg_replace('/[^0-9]/', '', (string) $cpf);
+
+    if (strlen($cpf) != 11) {
+      return false;
+    }
+    
+    for ($i = 0, $j = 10, $soma = 0; $i < 9; $i++, $j--) {
+      $soma += $cpf{$i} * $j;
+    }
+
+    $resto = $soma % 11;
+    
+    if ($cpf{9} != ($resto < 2 ? 0 : 11 - $resto)) {
+      return false;
+    }
+
+    for ($i = 0, $j = 11, $soma = 0; $i < 10; $i++, $j--) {
+      $soma += $cpf{$i} * $j;
+    }
+    
+    $resto = $soma % 11;
+
+    return $cpf{10} == ($resto < 2 ? 0 : 11 - $resto);
   }
 }
