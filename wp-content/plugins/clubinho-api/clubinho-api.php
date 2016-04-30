@@ -48,7 +48,7 @@ add_action( 'rest_api_init', function () {
 
 add_filter( 'jwt_auth_token_before_dispatch', function( $data, WP_User $user ){
   $data['name'] = $user->user_login;
-  $data['cpf'] = '00000000000';
+  $data['cpf'] = get_field('cpf', $user->ID);
   $data['address'] = 'QNN 17';
   $data['zipcode'] = '72231-617';
 

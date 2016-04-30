@@ -94,6 +94,18 @@ class Clubinho_API_Public extends WP_REST_Controller {
       ]
     ]);
 
+    register_rest_route( $this->namespace, '/facebook', [
+      [
+        'methods'             => WP_REST_Server::EDITABLE,
+        'callback'            => [$this, 'create_or_signin_from_facebook'],
+        'args'                => [
+          'access_token' => [
+            'required' => true
+          ]
+        ]
+      ]
+    ]);
+
     register_rest_route( $this->namespace, '/me', [
       [
         'methods'             => WP_REST_Server::READABLE,
@@ -153,6 +165,90 @@ class Clubinho_API_Public extends WP_REST_Controller {
       return new WP_Error(
         'user-not-created', 
         $user_id->get_error_message(), 
+        ['status' => 403]
+      );
+    }
+  }
+
+  public function create_or_signin_from_facebook($request) {
+    global $wp_rest_server;
+
+    $params = $request->get_params();
+
+    $api_endpoint = "https://graph.facebook.com/me/?fields=id,name,first_name,last_name,email&access_token={$params['access_token']}";
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_URL,$api_endpoint);
+    
+    $result = curl_exec($ch);
+    
+    curl_close($ch);
+
+    $result   = json_decode($result, true);
+    $email    = $result['email'];
+    $username = $result['id'];
+
+    if (isset($result['error'])) {
+      return new WP_Error(
+        'user-not-created', 
+        $result['error']['message'], 
+        ['status' => 403]
+      );
+    }
+
+    if (isset($email)) {
+      $email_exists = email_exists($email);
+
+      if ($email_exists) {
+        $user = get_user_by('email', $email);
+        $user_id = $user->ID;
+        $user_name = $user->user_login;
+      } 
+
+      if (!$user_id && $email_exists == false) {
+        $password = wp_generate_password(12, false);
+
+        $data = [
+          'user_login'  => $username,
+          'user_pass'   => $password,
+          'user_email'  => $email,
+          'first_name'  => $result['first_name'],
+          'last_name'   => $result['last_name'],
+          'display_name'=> $result['name']
+        ];
+
+        $user_id = wp_insert_user($data);
+        
+        if (is_wp_error($user_id)) { 
+          return new WP_Error(
+            'user-not-created', 
+            $user_id->get_error_message(), 
+            ['status' => 403]
+          );
+        }
+      }
+
+      $password = wp_generate_password(12, false);
+      wp_set_password($password, $user_id);
+
+      $login_request = new WP_REST_Request( 'POST', '/jwt-auth/v1/token');
+      $login_request->set_param('username', $username);
+      $login_request->set_param('password', $password);
+      rest_ensure_response($login_request);
+
+      $response = $wp_rest_server->dispatch($login_request);
+
+      if (!is_wp_error($response)) {
+        return $response;
+      } 
+
+      return $response;
+    } else {
+      return new WP_Error(
+        'user-not-created', 
+        'Necessário permitir o acesso ao seu email.', 
         ['status' => 403]
       );
     }
