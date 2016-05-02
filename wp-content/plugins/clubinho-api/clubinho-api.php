@@ -47,12 +47,10 @@ add_action( 'rest_api_init', function () {
 }, 0 );
 
 add_filter( 'jwt_auth_token_before_dispatch', function( $data, WP_User $user ){
-  $data['name'] = $user->user_login;
-  $data['cpf'] = get_field('cpf', $user->ID);
-  $data['address'] = 'QNN 17';
-  $data['zipcode'] = '72231-617';
+  $route = new Clubinho_API_Public();
+  $complete_data = $route->get_user_data(null, $user);
 
-  return $data;
+  return array_merge($data, $complete_data->data);
 }, 20, 2);
 
 add_action( 'init', function() {
