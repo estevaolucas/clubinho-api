@@ -111,11 +111,13 @@ add_action('save_post', function( $post_id ) {
   $redeems = get_field('redeemed', $post_id);
   $pontuation = 0;
 
-  if (count($events) > 0) {
+  if ($events && count($events)) {
     $pontuation = count($events) * $points_per_event;
 
-    foreach($redeems as $redeem) {
-      $pontuation = $pontuation - intval($redeem['pontuation']);
+    if ($redeems) {
+      foreach($redeems as $redeem) {
+        $pontuation = $pontuation - intval($redeem['pontuation']);
+      }
     }
   }
       
