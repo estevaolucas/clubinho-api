@@ -33,19 +33,71 @@ class Clubinho_API_Public extends WP_REST_Controller {
       ]
     ]);
 
-    // User
     register_rest_route( $this->namespace, '/me', [
+      // get user data
       [
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => [$this, 'get_user_data'],
         'permission_callback' => [$this, 'user_authorized'],
         'args'                => [],
       ],
+      // update user data
       [
         'methods'             => WP_REST_Server::EDITABLE,
         'callback'            => [$this, 'update_user_data'],
         'permission_callback' => [$this, 'user_authorized'],
         'args'                => $this->get_user_default_args('update_user')
+      ]
+    ]);
+
+    register_rest_route( $this->namespace, '/me/child', [
+      [
+        'methods'             => WP_REST_Server::EDITABLE,
+        'callback'            => [$this, 'add_child'],
+        'permission_callback' => [$this, 'user_authorized'],
+        'args'                => [
+          'name' => [
+            'required' => true,
+            'validate_callback' => function($name, $request, $key) {
+              $current_user = wp_get_current_user();
+              $children = new WP_Query([
+                'post_type'      => 'child',
+                'posts_per_page' => -1,
+                'post_status'    => 'publish',
+                'author'         => $current_user->ID
+              ]);
+
+              $exists = false;
+
+              if ($children->have_posts()) {
+                while ($children->have_posts()) {
+                  $children->the_post();
+
+                  if ($name == get_the_title()) {
+                    $exists = true;
+                  }
+                }
+              }
+
+              if ($exists) {
+                return new WP_Error('-', 'Um filho com esse nome já foi cadastrado.');
+              }
+            }
+          ],
+          'age' => [
+            'required' => true
+          ],
+          'avatar' => [
+            'required' => true,
+            'validate_callback' => function($avatar, $request, $key) {
+              $avatars = ['ana', 'luiz', 'maria'];
+
+              if (!in_array($avatar, $avatars)) {
+                return new WP_Error('-', 'Avatar não válido');
+              }
+            }
+          ]
+        ]
       ]
     ]);
 
@@ -78,7 +130,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
     $user_id = wp_insert_user($data);
 
     if (!is_wp_error($user_id)) { 
-      add_user_meta($user_id, 'create_at', date('Y-m-d H:i:s'));
+      add_user_meta($user_id, 'created_at', date('Y-m-d H:i:s'));
       add_user_meta($user_id, 'facebook_user', false);
 
       $acf_user_id = "user_{$user_id}";
@@ -97,7 +149,8 @@ class Clubinho_API_Public extends WP_REST_Controller {
         update_field('phone', $params['phone'], $acf_user_id);        
       }       
 
-      return new WP_REST_Response(['message' => 'Usuário criado'], 200);
+      $data = $this->prepare_for_response(['message' => 'Usuário criado']);
+      return new WP_REST_Response($data, 200);
     } else {
       return new WP_Error(
         'user-not-created', 
@@ -166,7 +219,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
           );
         } else {
           add_user_meta($user_id, 'facebook_user', true);
-          add_user_meta($user_id, 'create_at', date('Y-m-d H:i:s'));
+          add_user_meta($user_id, 'created_at', date('Y-m-d H:i:s'));
         }
       }
 
@@ -195,7 +248,6 @@ class Clubinho_API_Public extends WP_REST_Controller {
   }
 
   public function get_user_data($request = null, WP_User $current_user) {
-
     if (!isset($current_user)) {
       $current_user = wp_get_current_user();
     }
@@ -222,85 +274,44 @@ class Clubinho_API_Public extends WP_REST_Controller {
       'zipcode'       => $zipcode ? $zipcode : null,
       'phone'         => $phone   ? $phone   : null,
       'facebook_user' => !!get_user_meta($current_user->ID, 'facebook_user', true),
-      'children'      => []
+      'children'      => $this->get_children_list($current_user)
     ];
-
-    $children = new WP_Query([
-      'post_type'      => 'child',
-      'posts_per_page' => -1,
-      'post_status'    => 'publish',
-      'author'         => $current_user->ID
-    ]);
-
-    if ($children->have_posts()) {
-      while ($children->have_posts()) {
-        $children->the_post();
-
-        $child = [
-          'id'       => $children->post->ID,
-          'name'     => get_the_title(),
-          'age'      => get_field('age'),
-          'avatar'   => get_field('avatar'),
-          'points'   => get_field('points'),
-          'timeline' => []
-        ];
-
-        $user_events = get_field('events');
-        $user_redeems = have_rows('redeemed');
-        $timeline = [];
-
-        if (count($user_events)) {
-          $events = new WP_Query([
-            'post_type'       => 'event',
-            'posts_per_page'  => -1,
-            'post_status'     => 'publish',
-            'post__in'        => $user_events
-          ]);
-
-          if ($events->have_posts()) {
-            while ($events->have_posts()) {
-              $events->the_post();
-
-              array_push($timeline, [
-                'type'  => 'event',
-                'id'    => $events->post->ID,
-                'title' => $events->post->post_title,
-                'date'  => get_field('date') . ' ' . get_field('time')
-              ]);
-            }
-          }
-        }
-
-        if ($user_redeems) {
-          while(have_rows('redeemed', $children->post->ID)) {
-            the_row();
-                
-            array_push($timeline, [
-              'type'  => 'reedem',
-              'prize'      => get_sub_field('prize'),
-              'pontuation' => get_sub_field('pontuation'),
-              'date'       => get_sub_field('date')
-            ]);
-          }
-        }
-
-        usort($timeline, function($a, $b) {
-          $date1 = strtotime($a['date']);
-          $date2 = strtotime($b['date']);
-
-          return ($date1 - $date2);
-        });
-
-        $child['timeline'] = $timeline;
-
-        array_push($data['children'], $child);
-      }
-    }
     
     return new WP_REST_Response($this->prepare_for_response($data), 200);
   }
 
-  public function update_user_data( $request ) {
+  public function add_child($request) {
+    $current_user = wp_get_current_user();
+    $params = $request->get_params();
+
+    $child_id = wp_insert_post([
+      'post_author' => $current_user->ID,
+      'post_title'  => $params['name'],
+      'post_status' => 'publish',
+      'post_type'   => 'child'
+    ]);
+
+    if (!is_wp_error($child_id)) {
+      update_field('age', $params['age']);
+      update_field('avatar', $params['avatar']);
+      add_post_meta($child_id, 'created_at', date('Y-m-d H:i:s'));
+
+      $data = $this->prepare_for_response([
+        'message'  => "A criança {$params['name']} foi adicionada.",
+        'children' => $this->get_children_list($current_user)
+      ]);
+
+      return new WP_REST_Response($data, 200);
+    }
+
+    return new WP_Error(
+      'child-not-added', 
+      $child_id->get_error_message(), 
+      ['status' => 403]
+    );
+  }
+
+  public function update_user_data($request) {
     $current_user = wp_get_current_user();
     
     $params = $request->get_params();
@@ -337,11 +348,11 @@ class Clubinho_API_Public extends WP_REST_Controller {
     $email_sent = $this->send_forgot_password($email);
     
     if (!is_wp_error($email_sent)) {
-      $data = [
+      $data = $this->prepare_for_response([
         'message' => 'O link para redefinir a senha foi enviado para seu e-mail.'
-      ];
+      ]);
 
-      return new WP_REST_Response($this->prepare_for_response($data), 200);
+      return new WP_REST_Response($data, 200);
     } else {
       return $email_sent;
     }
@@ -524,6 +535,87 @@ class Clubinho_API_Public extends WP_REST_Controller {
     }
 
     return $args;
+  }
+
+  private function get_children_list(WP_User $current_user) {
+    $children_list = [];
+    $children = new WP_Query([
+      'post_type'      => 'child',
+      'posts_per_page' => -1,
+      'post_status'    => 'publish',
+      'author'         => $current_user->ID
+    ]);
+
+    if ($children->have_posts()) {
+      while ($children->have_posts()) {
+        $children->the_post();
+
+        $child = [
+          'id'       => $children->post->ID,
+          'name'     => get_the_title(),
+          'age'      => get_field('age'),
+          'avatar'   => get_field('avatar'),
+          'points'   => get_field('points'),
+          'timeline' => []
+        ];
+
+        $user_events = get_field('events');
+        $user_redeems = have_rows('redeemed');
+        $timeline = [];
+
+        if (count($user_events)) {
+          $events = new WP_Query([
+            'post_type'       => 'event',
+            'posts_per_page'  => -1,
+            'post_status'     => 'publish',
+            'post__in'        => $user_events
+          ]);
+
+          if ($events->have_posts()) {
+            while ($events->have_posts()) {
+              $events->the_post();
+
+              array_push($timeline, [
+                'type'  => 'event',
+                'id'    => $events->post->ID,
+                'title' => $events->post->post_title,
+                'date'  => get_field('date') . ' ' . get_field('time')
+              ]);
+            }
+          }
+        }
+
+        if ($user_redeems) {
+          while(have_rows('redeemed', $children->post->ID)) {
+            the_row();
+                
+            array_push($timeline, [
+              'type'  => 'reedem',
+              'prize'      => get_sub_field('prize'),
+              'pontuation' => get_sub_field('pontuation'),
+              'date'       => get_sub_field('date')
+            ]);
+          }
+        }
+
+        usort($timeline, function($a, $b) {
+          $date1 = strtotime($a['date']);
+          $date2 = strtotime($b['date']);
+
+          return ($date1 - $date2);
+        });
+
+        $child['timeline'] = $timeline;
+
+        array_push($children_list, $child);
+      }
+    }
+
+    usort($children_list, function($a, $b) {
+      return ($a['age'] - $a['age']);
+    });
+
+    return $children_list;
   }
 
   private function validate_cpf($cpf) {
