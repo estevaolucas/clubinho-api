@@ -66,7 +66,13 @@ class Clubinho_API_Public extends WP_REST_Controller {
         'methods'             => WP_REST_Server::EDITABLE,
         'callback'            => [$this, 'update_child'],
         'permission_callback' => [$this, 'user_authorized'],
-        'args'                => $this->get_child_default_args()
+        'args'                => $this->get_child_default_args('update_child')
+      ],
+      [
+        'methods'             => WP_REST_Server::DELETABLE, 
+        'callback'            => [$this, 'remove_child'],
+        'permission_callback' => [$this, 'user_authorized'],
+        'args'                => $this->get_child_default_args('remove_child')
       ]
     ]);
 
@@ -274,7 +280,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
     }
 
     return new WP_Error(
-      'child-not-added', 
+      'child-not-created', 
       $child_id->get_error_message(), 
       ['status' => 403]
     );
@@ -303,7 +309,31 @@ class Clubinho_API_Public extends WP_REST_Controller {
     }
 
     return new WP_Error(
-      'child-not-added', 
+      'child-not-updated', 
+      $child_id->get_error_message(), 
+      ['status' => 403]
+    );
+  }
+
+  public function remove_child($request) {
+    $current_user = wp_get_current_user();
+    $id = $request->get_param('id');
+
+    $child_id = wp_delete_post($id);
+
+    if ($child_id) {
+      update_post_meta($child_id, 'deleted_at', date('Y-m-d H:i:s'));
+
+      $data = $this->prepare_for_response([
+        'message'  => "A criança foi removida.",
+        'children' => $this->get_children_list($current_user)
+      ]);
+
+      return new WP_REST_Response($data, 200);
+    }
+
+    return new WP_Error(
+      'child-not-removed', 
       $child_id->get_error_message(), 
       ['status' => 403]
     );
@@ -508,7 +538,11 @@ class Clubinho_API_Public extends WP_REST_Controller {
       ]
     ];
 
-    if ($type == 'update_child') {
+    if ($type == 'remove_child') {
+      $args = [];
+    }
+
+    if ($type == 'update_child' || $type == 'remove_child') {
       $args['id'] = [
         'required' => true,
         'validate_callback' => function($id, $request, $key) {
@@ -521,7 +555,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
             'author'         => $current_user->ID
           ]);
 
-          if ($child->have_posts()) {
+          if (!$child->have_posts()) {
             return new WP_Error('-', 'Não há criança com esses dados!');
           }
         } 
