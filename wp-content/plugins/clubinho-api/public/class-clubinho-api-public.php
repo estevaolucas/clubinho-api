@@ -201,10 +201,12 @@ class Clubinho_API_Public extends WP_REST_Controller {
     }
     
     $user_id = "user_{$current_user->ID}";
-    $cpf = null;
+    $cpf = get_field('cpf', $user_id);
 
-    if ($cpf = get_field('cpf', $user_id) && $cpf) {
+    if ($cpf) {
       $cpf = $this->apply_mask_string('###.###.###-##', $cpf);
+    } else {
+      $cpf = null;
     }
 
     $address = get_field('address', $user_id);
@@ -224,9 +226,10 @@ class Clubinho_API_Public extends WP_REST_Controller {
     ];
 
     $children = new WP_Query([
-      'post_type' => 'child',
+      'post_type'      => 'child',
       'posts_per_page' => -1,
-      'post_status' => 'publish'
+      'post_status'    => 'publish',
+      'author'         => $current_user->ID
     ]);
 
     if ($children->have_posts()) {
