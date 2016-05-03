@@ -60,19 +60,69 @@ class Clubinho_API_Public extends WP_REST_Controller {
       ]
     ]);
 
-    // update child data
     register_rest_route( $this->namespace, '/me/child/(?P<id>\d+)', [
+      // update child data
       [
         'methods'             => WP_REST_Server::EDITABLE,
         'callback'            => [$this, 'update_child'],
         'permission_callback' => [$this, 'user_authorized'],
         'args'                => $this->get_child_default_args('update_child')
       ],
+      // remove child
       [
         'methods'             => WP_REST_Server::DELETABLE, 
         'callback'            => [$this, 'remove_child'],
         'permission_callback' => [$this, 'user_authorized'],
         'args'                => $this->get_child_default_args('remove_child')
+      ]
+    ]);
+
+    register_rest_route( $this->namespace, '/me/child/(?P<id>\d+)/confirm/(?P<eventId>\d+)', [
+      [
+        'methods'             => WP_REST_Server::EDITABLE,
+        'callback'            => [$this, 'confirm_event_for_child'],
+        'permission_callback' => [$this, 'user_authorized'],
+        'args'                => [
+          'id' => [
+            'required' => true,
+            'validate_callback' => function($id, $request, $key) {
+              $current_user = wp_get_current_user();
+              $child = new WP_Query([
+                'p'              => $id,
+                'post_type'      => 'child',
+                'posts_per_page' => -1,
+                'post_status'    => 'publish',
+                'author'         => $current_user->ID
+              ]);
+
+              if (!$child->have_posts()) {
+                return new WP_Error('-', 'Não há criança com esses dados!');
+              }
+            }
+          ],
+          'eventId' => [
+            'required' => true,
+            'validate_callback' => function($eventId, $request, $key) {
+              $current_user = wp_get_current_user();
+              $event = new WP_Query([
+                'p'              => $eventId,
+                'post_type'      => 'event',
+                'posts_per_page' => -1,
+                'post_status'    => 'publish'
+              ]);
+
+              if (!$event->have_posts()) {
+                return new WP_Error('-', 'Não há criança com esses dados!');
+              } else {
+                $events = get_field($this->get_acf_key('events'), $request->get_param('id'));
+                
+                if (is_array($events) && in_array($eventId, $events)) {
+                  return new WP_Error('-', 'Evento já confirmado!');
+                }
+              }
+            }
+          ]
+        ]
       ]
     ]);
 
@@ -337,6 +387,22 @@ class Clubinho_API_Public extends WP_REST_Controller {
       $child_id->get_error_message(), 
       ['status' => 403]
     );
+  }
+
+  public function confirm_event_for_child($request) {
+    $current_user = wp_get_current_user();
+    $id = $request->get_param('id');
+    $eventId = $request->get_param('eventId');
+
+    $events = get_field($this->get_acf_key('events'), $id);
+    $events[] = $eventId;
+    update_field($this->get_acf_key('events'), $events, $id);
+
+    $data = $this->prepare_for_response([
+      'message' => 'Evento confirmado'
+    ]);
+
+    return new WP_REST_Response($data, 200);
   }
 
   public function update_user_data($request) {
