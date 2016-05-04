@@ -2,12 +2,9 @@
 
 class Clubinho_API_Endpoints {
 
-  private $helper;
-
   public function __construct() {
     $this->namespace = 'wp/v1';
-
-    $this->helper = new Clubinho_API_Helper();
+    class_alias('Clubinho_API_Helper', 'Helper');
   }
 
   public function create_user($request) {
@@ -15,7 +12,7 @@ class Clubinho_API_Endpoints {
     list($first, $last) = explode(' ', $params['name']);
 
     $data = [
-      'user_login'   => $this->helper->remove_mask_string($params['cpf']),
+      'user_login'   => Helper::remove_mask_string($params['cpf']),
       'user_pass'    => $params['password'],
       'user_email'   => $params['email'],
       'first_name'   => $first,
@@ -31,18 +28,18 @@ class Clubinho_API_Endpoints {
 
       $acf_user_id = "user_{$user_id}";
 
-      update_field($this->helper->get_acf_key('cpf'), $this->helper->remove_mask_string($params['cpf']), $acf_user_id);
+      update_field(Helper::get_acf_key('cpf'), Helper::remove_mask_string($params['cpf']), $acf_user_id);
 
       if ($params['address']) {
-        update_field($this->helper->get_acf_key('address'), $params['address'], $acf_user_id);        
+        update_field(Helper::get_acf_key('address'), $params['address'], $acf_user_id);        
       } 
 
       if ($params['zipcode']) {
-        update_field($this->helper->get_acf_key('zipcode'), $params['zipcode'], $acf_user_id);        
+        update_field(Helper::get_acf_key('zipcode'), $params['zipcode'], $acf_user_id);        
       } 
 
       if ($params['phone']) {
-        update_field($this->helper->get_acf_key('phone'), $params['phone'], $acf_user_id);        
+        update_field(Helper::get_acf_key('phone'), $params['phone'], $acf_user_id);        
       }       
 
       $data = $this->prepare_for_response(['message' => 'Usuário criado']);
@@ -152,7 +149,7 @@ class Clubinho_API_Endpoints {
     $cpf = get_field('cpf', $user_id);
 
     if ($cpf) {
-      $cpf = $this->helper->apply_mask_string('###.###.###-##', $cpf);
+      $cpf = Helper::apply_mask_string('###.###.###-##', $cpf);
     } else {
       $cpf = null;
     }
@@ -170,7 +167,7 @@ class Clubinho_API_Endpoints {
       'zipcode'       => $zipcode ? $zipcode : null,
       'phone'         => $phone   ? $phone   : null,
       'facebook_user' => !!get_user_meta($current_user->ID, 'facebook_user', true),
-      'children'      => $this->helper->get_children_list($current_user)
+      'children'      => Helper::get_children_list($current_user)
     ];
     
     return new WP_REST_Response($this->prepare_for_response($data), 200);
@@ -188,13 +185,13 @@ class Clubinho_API_Endpoints {
     ]);
 
     if (!is_wp_error($child_id)) {
-      update_field($this->helper->get_acf_key('age'), $params['age'], $child_id);
-      update_field($this->helper->get_acf_key('avatar'), $params['avatar'], $child_id);
+      update_field(Helper::get_acf_key('age'), $params['age'], $child_id);
+      update_field(Helper::get_acf_key('avatar'), $params['avatar'], $child_id);
       add_post_meta($child_id, 'created_at', date('Y-m-d H:i:s'));
 
       $data = $this->prepare_for_response([
         'message'  => "A criança {$params['name']} foi adicionada.",
-        'children' => $this->helper->get_children_list($current_user)
+        'children' => Helper::get_children_list($current_user)
       ]);
 
       return new WP_REST_Response($data, 200);
@@ -217,13 +214,13 @@ class Clubinho_API_Endpoints {
     ]);
 
     if (!is_wp_error($child_id)) {
-      update_field($this->helper->get_acf_key('avatar'), $params['avatar'], $child_id);
-      update_field($this->helper->get_acf_key('age'), $params['age'], $child_id);
+      update_field(Helper::get_acf_key('avatar'), $params['avatar'], $child_id);
+      update_field(Helper::get_acf_key('age'), $params['age'], $child_id);
       update_post_meta($child_id, 'updated_at', date('Y-m-d H:i:s'));
 
       $data = $this->prepare_for_response([
         'message'  => "A criança {$params['name']} foi atualizada.",
-        'children' => $this->helper->get_children_list($current_user)
+        'children' => Helper::get_children_list($current_user)
       ]);
 
       return new WP_REST_Response($data, 200);
@@ -247,7 +244,7 @@ class Clubinho_API_Endpoints {
 
       $data = $this->prepare_for_response([
         'message'  => "A criança foi removida.",
-        'children' => $this->helper->get_children_list($current_user)
+        'children' => Helper::get_children_list($current_user)
       ]);
 
       return new WP_REST_Response($data, 200);
@@ -265,9 +262,9 @@ class Clubinho_API_Endpoints {
     $id = $request->get_param('id');
     $eventId = $request->get_param('eventId');
 
-    $events = get_field($this->helper->get_acf_key('events'), $id);
+    $events = get_field(Helper::get_acf_key('events'), $id);
     $events[] = $eventId;
-    update_field($this->helper->get_acf_key('events'), $events, $id);
+    update_field(Helper::get_acf_key('events'), $events, $id);
 
     $data = $this->prepare_for_response([
       'message' => 'Evento confirmado'
@@ -292,7 +289,7 @@ class Clubinho_API_Endpoints {
       ]);
 
       if (is_wp_error($updated)) {
-        update_field('cpf', $this->helper->remove_mask_string($params['cpf']), $user_id);
+        update_field('cpf', Helper::remove_mask_string($params['cpf']), $user_id);
         update_field('address', $params['address'], $user_id);
         update_field('zipcode', $params['zipcode'], $user_id);
         update_field('phone', $params['phone'], $user_id);
@@ -310,7 +307,7 @@ class Clubinho_API_Endpoints {
 
   public function forgot_password( $request ) {
     $email      = $request->get_params('email');
-    $email_sent = $this->helper->send_forgot_password($email);
+    $email_sent = Helper::send_forgot_password($email);
     
     if (!is_wp_error($email_sent)) {
       $data = $this->prepare_for_response([
@@ -323,13 +320,48 @@ class Clubinho_API_Endpoints {
     }
   }
 
-  private function prepare_for_response( $data ) {
-    return [ 'data' => $data ];
+  public function get_shedule($request) {
+    $events = [];
+    $posts = new WP_Query([
+      'post_type'      => 'event',
+      'posts_per_page' => -1,
+      'post_status'    => 'publish',
+      'meta_query'     => [
+        'relation' => 'AND',
+        [
+          'key'       => 'date',
+          'value'     => date('Y-m-d'),
+          'compare'   => '>=',
+        ]
+      ]
+    ]);
+
+    if ($posts->have_posts()) {
+      while ($posts->have_posts()) {
+        $posts->the_post();
+
+        array_push($events, [
+          'id'      => get_the_ID(),
+          'date'    => get_field('date') . ' ' . get_field('time'),
+          'title'   => get_the_title(),
+          'excerpt' => get_the_excerpt(),
+          'content' => get_the_content(),
+          'author'  => get_field('author'),
+          'cover'   => get_field('cover')
+        ]);
+      }
+    }
+
+    return new WP_REST_Response($this->prepare_for_response($events), 200);
   }
 
   // check if a given request has authorization
-  public function user_authorized( $request ) {
+  public function user_authorized($request) {
     return current_user_can('read');
+  }
+
+  private function prepare_for_response($data) {
+    return [ 'data' => $data ];
   }
 
   public function get_user_default_args($type = 'create_user') {
@@ -360,11 +392,11 @@ class Clubinho_API_Endpoints {
         'description' => 'CPF inválido',
         'required' => true,
         'validate_callback' => function($cpf, $request, $key) use ($type) {
-          if (!$this->helper->validate_cpf($cpf)) {
+          if (!Helper::validate_cpf($cpf)) {
             return new WP_Error('-', 'CPF inválido');
           }
 
-          $is_cpf_used = username_exists($this->helper->remove_mask_string($cpf));
+          $is_cpf_used = username_exists(Helper::remove_mask_string($cpf));
 
           if ($type != 'update_user' && $is_cpf_used) {
             return new WP_Error('-', 'CPF já cadastrado.');
@@ -535,7 +567,7 @@ class Clubinho_API_Endpoints {
           if (!$event->have_posts()) {
             return new WP_Error('-', 'Não há criança com esses dados!');
           } else {
-            $events = get_field($this->helper->get_acf_key('events'), $request->get_param('id'));
+            $events = get_field(Helper::get_acf_key('events'), $request->get_param('id'));
             
             if (is_array($events) && in_array($eventId, $events)) {
               return new WP_Error('-', 'Evento já confirmado!');

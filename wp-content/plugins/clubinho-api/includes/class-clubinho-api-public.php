@@ -124,6 +124,14 @@ class Clubinho_API_Public extends WP_REST_Controller {
         'args'                => ['email', ['required' => true]],
       ]
     ]);
+
+    register_rest_route($this->namespace, '/get-schedule-list', [
+      [
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => [$this->endpoints, 'get_shedule'],
+        'args'                => ['size', ['required' => false]],
+      ]
+    ]);
   }
 
   public function add_filters() {

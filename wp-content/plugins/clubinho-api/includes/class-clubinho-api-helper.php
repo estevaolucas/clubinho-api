@@ -2,7 +2,7 @@
 
 class Clubinho_API_Helper {
 
-  public function get_children_list(WP_User $current_user) {
+  public static function get_children_list(WP_User $current_user) {
     $children_list = [];
     $children = new WP_Query([
       'post_type'      => 'child',
@@ -82,7 +82,7 @@ class Clubinho_API_Helper {
     return $children_list;
   }
 
-  public function send_forgot_password($user_login) {
+  public static function send_forgot_password($user_login) {
     global $wpdb, $wp_hasher;
 
     if (strpos($user_login, '@')) {
@@ -158,7 +158,7 @@ class Clubinho_API_Helper {
     return true;
   }
 
-  public function validate_cpf($cpf) {
+  public static function validate_cpf($cpf) {
     $cpf = preg_replace('/[^0-9]/', '', (string) $cpf);
 
     if (strlen($cpf) != 11) {
@@ -184,7 +184,7 @@ class Clubinho_API_Helper {
     return $cpf{10} == ($rest < 2 ? 0 : 11 - $rest);
   }
 
-  public function apply_mask_string($mask, $text) {
+  public static function apply_mask_string($mask, $text) {
     $text = str_replace(' ', '', $text);
 
     for($i = 0; $i < strlen($text); $i++) {
@@ -194,11 +194,11 @@ class Clubinho_API_Helper {
     return $mask;
   }
 
-  public function remove_mask_string($value, $type = 'cpf') {
+  public static function remove_mask_string($value, $type = 'cpf') {
     return preg_replace('/[\\.-]*/i', '', $value, -1);
   }
 
-  public function get_acf_key($field_name) {
+  public static function get_acf_key($field_name) {
     global $wpdb;
     
     $length = strlen($field_name);
