@@ -1,142 +1,13 @@
 <?php
 
-class Clubinho_API_Public extends WP_REST_Controller {
+class Clubinho_API_Endpoints {
+
+  private $helper;
 
   public function __construct() {
     $this->namespace = 'wp/v1';
-  }
 
-  /**
-   * Register the routes for the objects of the controller.
-   */
-  public function register_routes() {
-
-    // Create user
-    register_rest_route( $this->namespace, '/create-user', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this, 'create_user'],
-        'args'                => $this->get_user_default_args()
-      ]
-    ]);
-
-    // Create/login facebook user
-    register_rest_route( $this->namespace, '/facebook', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this, 'create_or_signin_from_facebook'],
-        'args'                => [
-          'access_token' => [
-            'required' => true
-          ]
-        ]
-      ]
-    ]);
-
-    register_rest_route( $this->namespace, '/me', [
-      // get user data
-      [
-        'methods'             => WP_REST_Server::READABLE,
-        'callback'            => [$this, 'get_user_data'],
-        'permission_callback' => [$this, 'user_authorized'],
-        'args'                => [],
-      ],
-      // update user data
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this, 'update_user_data'],
-        'permission_callback' => [$this, 'user_authorized'],
-        'args'                => $this->get_user_default_args('update_user')
-      ]
-    ]);
-
-    // add child
-    register_rest_route( $this->namespace, '/me/child', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this, 'create_child'],
-        'permission_callback' => [$this, 'user_authorized'],
-        'args'                => $this->get_child_default_args()
-      ]
-    ]);
-
-    register_rest_route( $this->namespace, '/me/child/(?P<id>\d+)', [
-      // update child data
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this, 'update_child'],
-        'permission_callback' => [$this, 'user_authorized'],
-        'args'                => $this->get_child_default_args('update_child')
-      ],
-      // remove child
-      [
-        'methods'             => WP_REST_Server::DELETABLE, 
-        'callback'            => [$this, 'remove_child'],
-        'permission_callback' => [$this, 'user_authorized'],
-        'args'                => $this->get_child_default_args('remove_child')
-      ]
-    ]);
-
-    register_rest_route( $this->namespace, '/me/child/(?P<id>\d+)/confirm/(?P<eventId>\d+)', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this, 'confirm_event_for_child'],
-        'permission_callback' => [$this, 'user_authorized'],
-        'args'                => [
-          'id' => [
-            'required' => true,
-            'validate_callback' => function($id, $request, $key) {
-              $current_user = wp_get_current_user();
-              $child = new WP_Query([
-                'p'              => $id,
-                'post_type'      => 'child',
-                'posts_per_page' => -1,
-                'post_status'    => 'publish',
-                'author'         => $current_user->ID
-              ]);
-
-              if (!$child->have_posts()) {
-                return new WP_Error('-', 'Não há criança com esses dados!');
-              }
-            }
-          ],
-          'eventId' => [
-            'required' => true,
-            'validate_callback' => function($eventId, $request, $key) {
-              $current_user = wp_get_current_user();
-              $event = new WP_Query([
-                'p'              => $eventId,
-                'post_type'      => 'event',
-                'posts_per_page' => -1,
-                'post_status'    => 'publish'
-              ]);
-
-              if (!$event->have_posts()) {
-                return new WP_Error('-', 'Não há criança com esses dados!');
-              } else {
-                $events = get_field($this->get_acf_key('events'), $request->get_param('id'));
-                
-                if (is_array($events) && in_array($eventId, $events)) {
-                  return new WP_Error('-', 'Evento já confirmado!');
-                }
-              }
-            }
-          ]
-        ]
-      ]
-    ]);
-
-    register_rest_route( $this->namespace, '/forgot-password', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this, 'forgot_password'],
-        'args'                => [
-          'email', [
-            'required' => true
-          ]
-        ],
-      ]
-    ]);
+    $this->helper = new Clubinho_API_Helper();
   }
 
   public function create_user($request) {
@@ -144,7 +15,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
     list($first, $last) = explode(' ', $params['name']);
 
     $data = [
-      'user_login'   => $this->remove_mask_string($params['cpf']),
+      'user_login'   => $this->helper->remove_mask_string($params['cpf']),
       'user_pass'    => $params['password'],
       'user_email'   => $params['email'],
       'first_name'   => $first,
@@ -160,18 +31,18 @@ class Clubinho_API_Public extends WP_REST_Controller {
 
       $acf_user_id = "user_{$user_id}";
 
-      update_field($this->get_acf_key('cpf'), $this->remove_mask_string($params['cpf']), $acf_user_id);
+      update_field($this->helper->get_acf_key('cpf'), $this->helper->remove_mask_string($params['cpf']), $acf_user_id);
 
       if ($params['address']) {
-        update_field($this->get_acf_key('address'), $params['address'], $acf_user_id);        
+        update_field($this->helper->get_acf_key('address'), $params['address'], $acf_user_id);        
       } 
 
       if ($params['zipcode']) {
-        update_field($this->get_acf_key('zipcode'), $params['zipcode'], $acf_user_id);        
+        update_field($this->helper->get_acf_key('zipcode'), $params['zipcode'], $acf_user_id);        
       } 
 
       if ($params['phone']) {
-        update_field($this->get_acf_key('phone'), $params['phone'], $acf_user_id);        
+        update_field($this->helper->get_acf_key('phone'), $params['phone'], $acf_user_id);        
       }       
 
       $data = $this->prepare_for_response(['message' => 'Usuário criado']);
@@ -281,7 +152,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
     $cpf = get_field('cpf', $user_id);
 
     if ($cpf) {
-      $cpf = $this->apply_mask_string('###.###.###-##', $cpf);
+      $cpf = $this->helper->apply_mask_string('###.###.###-##', $cpf);
     } else {
       $cpf = null;
     }
@@ -299,7 +170,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
       'zipcode'       => $zipcode ? $zipcode : null,
       'phone'         => $phone   ? $phone   : null,
       'facebook_user' => !!get_user_meta($current_user->ID, 'facebook_user', true),
-      'children'      => $this->get_children_list($current_user)
+      'children'      => $this->helper->get_children_list($current_user)
     ];
     
     return new WP_REST_Response($this->prepare_for_response($data), 200);
@@ -317,13 +188,13 @@ class Clubinho_API_Public extends WP_REST_Controller {
     ]);
 
     if (!is_wp_error($child_id)) {
-      update_field($this->get_acf_key('age'), $params['age'], $child_id);
-      update_field($this->get_acf_key('avatar'), $params['avatar'], $child_id);
+      update_field($this->helper->get_acf_key('age'), $params['age'], $child_id);
+      update_field($this->helper->get_acf_key('avatar'), $params['avatar'], $child_id);
       add_post_meta($child_id, 'created_at', date('Y-m-d H:i:s'));
 
       $data = $this->prepare_for_response([
         'message'  => "A criança {$params['name']} foi adicionada.",
-        'children' => $this->get_children_list($current_user)
+        'children' => $this->helper->get_children_list($current_user)
       ]);
 
       return new WP_REST_Response($data, 200);
@@ -346,13 +217,13 @@ class Clubinho_API_Public extends WP_REST_Controller {
     ]);
 
     if (!is_wp_error($child_id)) {
-      update_field($this->get_acf_key('avatar'), $params['avatar'], $child_id);
-      update_field($this->get_acf_key('age'), $params['age'], $child_id);
+      update_field($this->helper->get_acf_key('avatar'), $params['avatar'], $child_id);
+      update_field($this->helper->get_acf_key('age'), $params['age'], $child_id);
       update_post_meta($child_id, 'updated_at', date('Y-m-d H:i:s'));
 
       $data = $this->prepare_for_response([
         'message'  => "A criança {$params['name']} foi atualizada.",
-        'children' => $this->get_children_list($current_user)
+        'children' => $this->helper->get_children_list($current_user)
       ]);
 
       return new WP_REST_Response($data, 200);
@@ -376,7 +247,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
 
       $data = $this->prepare_for_response([
         'message'  => "A criança foi removida.",
-        'children' => $this->get_children_list($current_user)
+        'children' => $this->helper->get_children_list($current_user)
       ]);
 
       return new WP_REST_Response($data, 200);
@@ -394,9 +265,9 @@ class Clubinho_API_Public extends WP_REST_Controller {
     $id = $request->get_param('id');
     $eventId = $request->get_param('eventId');
 
-    $events = get_field($this->get_acf_key('events'), $id);
+    $events = get_field($this->helper->get_acf_key('events'), $id);
     $events[] = $eventId;
-    update_field($this->get_acf_key('events'), $events, $id);
+    update_field($this->helper->get_acf_key('events'), $events, $id);
 
     $data = $this->prepare_for_response([
       'message' => 'Evento confirmado'
@@ -421,7 +292,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
       ]);
 
       if (is_wp_error($updated)) {
-        update_field('cpf', $this->remove_mask_string($params['cpf']), $user_id);
+        update_field('cpf', $this->helper->remove_mask_string($params['cpf']), $user_id);
         update_field('address', $params['address'], $user_id);
         update_field('zipcode', $params['zipcode'], $user_id);
         update_field('phone', $params['phone'], $user_id);
@@ -439,7 +310,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
 
   public function forgot_password( $request ) {
     $email      = $request->get_params('email');
-    $email_sent = $this->send_forgot_password($email);
+    $email_sent = $this->helper->send_forgot_password($email);
     
     if (!is_wp_error($email_sent)) {
       $data = $this->prepare_for_response([
@@ -452,16 +323,16 @@ class Clubinho_API_Public extends WP_REST_Controller {
     }
   }
 
-  // Check if a given request has authorization
-  public function user_authorized( $request ) {
-    return current_user_can('read');
-  }
-
   private function prepare_for_response( $data ) {
     return [ 'data' => $data ];
   }
 
-  private function get_user_default_args($type = 'create_user') {
+  // check if a given request has authorization
+  public function user_authorized( $request ) {
+    return current_user_can('read');
+  }
+
+  public function get_user_default_args($type = 'create_user') {
     $args = [
       'name' => [
         'required' => true
@@ -489,11 +360,11 @@ class Clubinho_API_Public extends WP_REST_Controller {
         'description' => 'CPF inválido',
         'required' => true,
         'validate_callback' => function($cpf, $request, $key) use ($type) {
-          if (!$this->validate_cpf($cpf)) {
+          if (!$this->helper->validate_cpf($cpf)) {
             return new WP_Error('-', 'CPF inválido');
           }
 
-          $is_cpf_used = username_exists($this->remove_mask_string($cpf));
+          $is_cpf_used = username_exists($this->helper->remove_mask_string($cpf));
 
           if ($type != 'update_user' && $is_cpf_used) {
             return new WP_Error('-', 'CPF já cadastrado.');
@@ -555,7 +426,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
     return $args;
   }
 
-  private function get_child_default_args($type = 'create_child') {
+  public function get_child_default_args($type = 'create_child') {
     $args = [
       'name' => [
         'required' => true,
@@ -631,211 +502,49 @@ class Clubinho_API_Public extends WP_REST_Controller {
     return $args;
   }
 
-  private function get_children_list(WP_User $current_user) {
-    $children_list = [];
-    $children = new WP_Query([
-      'post_type'      => 'child',
-      'posts_per_page' => -1,
-      'post_status'    => 'publish',
-      'author'         => $current_user->ID
-    ]);
-
-    if ($children->have_posts()) {
-      while ($children->have_posts()) {
-        $children->the_post();
-        $child = [
-          'id'       => $children->post->ID,
-          'name'     => get_the_title(),
-          'age'      => get_field('age'),
-          'avatar'   => get_field('avatar', $children->post->ID),
-          'points'   => get_field('points', $children->post->ID),
-          'timeline' => []
-        ];
-
-        $user_events = get_field('events', $children->post->ID);
-        $user_redeems = have_rows('redeemed');
-        $timeline = [];
-
-        if ($user_events && count($user_events)) {
-          $events = new WP_Query([
-            'post_type'       => 'event',
-            'posts_per_page'  => -1,
-            'post_status'     => 'publish',
-            'post__in'        => $user_events
+  public function get_child_confirm_default_args() {
+    $args = [
+      'id' => [
+        'required' => true,
+        'validate_callback' => function($id, $request, $key) {
+          $current_user = wp_get_current_user();
+          $child = new WP_Query([
+            'p'              => $id,
+            'post_type'      => 'child',
+            'posts_per_page' => -1,
+            'post_status'    => 'publish',
+            'author'         => $current_user->ID
           ]);
 
-          if ($events->have_posts()) {
-            while ($events->have_posts()) {
-              $events->the_post();
+          if (!$child->have_posts()) {
+            return new WP_Error('-', 'Não há criança com esses dados!');
+          }
+        }
+      ],
+      'eventId' => [
+        'required' => true,
+        'validate_callback' => function($eventId, $request, $key) {
+          $current_user = wp_get_current_user();
+          $event = new WP_Query([
+            'p'              => $eventId,
+            'post_type'      => 'event',
+            'posts_per_page' => -1,
+            'post_status'    => 'publish'
+          ]);
 
-              array_push($timeline, [
-                'type'  => 'event',
-                'id'    => $events->post->ID,
-                'title' => $events->post->post_title,
-                'date'  => get_field('date') . ' ' . get_field('time')
-              ]);
+          if (!$event->have_posts()) {
+            return new WP_Error('-', 'Não há criança com esses dados!');
+          } else {
+            $events = get_field($this->helper->get_acf_key('events'), $request->get_param('id'));
+            
+            if (is_array($events) && in_array($eventId, $events)) {
+              return new WP_Error('-', 'Evento já confirmado!');
             }
           }
         }
+      ]
+    ];
 
-        if ($user_redeems) {
-          while(have_rows('redeemed', $children->post->ID)) {
-            the_row();
-                
-            array_push($timeline, [
-              'type'  => 'reedem',
-              'prize'      => get_sub_field('prize'),
-              'pontuation' => get_sub_field('pontuation'),
-              'date'       => get_sub_field('date')
-            ]);
-          }
-        }
-
-        usort($timeline, function($a, $b) {
-          $date1 = strtotime($a['date']);
-          $date2 = strtotime($b['date']);
-
-          return ($date1 - $date2);
-        });
-
-        $child['timeline'] = $timeline;
-
-        array_push($children_list, $child);
-      }
-    }
-
-    usort($children_list, function($a, $b) {
-      return ($a['age'] - $a['age']);
-    });
-
-    return $children_list;
-  }
-
-  private function send_forgot_password( $user_login ) {
-    global $wpdb, $wp_hasher;
-
-    if (strpos($user_login, '@')) {
-      $user_data = get_user_by('email', trim($user_login));
-      
-      if (empty($user_data)) {
-        return new WP_Error(
-        'invalid-email-for-forget-password', 
-          'E-mail de usuário inválido.', 
-          ['status' => 403]
-        );
-      }
-    } else {
-      $login = trim($user_login);
-      $user_data = get_user_by('login', $login);
-    }
-
-    do_action('lostpassword_post');
-
-    if ( !$user_data ) return false;
-
-    // redefining user_login ensures we return the right case in the email
-    $user_login = $user_data->user_login;
-    $user_email = $user_data->user_email;
-
-    // do_action('retreive_password', $user_login);  // Misspelled and deprecated
-    do_action('retrieve_password', $user_login);
-
-    $allow = apply_filters('allow_password_reset', true, $user_data->ID);
-
-    if (!$allow || is_wp_error($allow)) {
-      return new WP_Error(
-        'cant-send-forget-password-email', 
-        'E-mail não pode ser enviado. Problema técnico. 2', 
-        ['status' => 403]
-      );
-    }
-
-    $key = wp_generate_password( 20, false );
-    do_action( 'retrieve_password_key', $user_login, $key );
-
-    if (empty($wp_hasher)) {
-      require_once ABSPATH . 'wp-includes/class-phpass.php';
-      $wp_hasher = new PasswordHash(8, true);
-    }
-
-    $hashed = $wp_hasher->HashPassword( $key );
-    $wpdb->update( $wpdb->users, 
-      ['user_activation_key' => $hashed], 
-      ['user_login' => $user_login]
-    );
-
-    $message  = 'Alguém pediu que a senha da seguinte conta seja redefinida:' . '\r\n\r\n';
-    $message .= sprintf('E-mail: %s', $user_email) . '\r\n\r\n';
-    $message .= 'Se isso foi um erro, apenas ignore este e-mail e nada acontecerá' . '\r\n\r\n';
-    $message .= __('Para redefinir sua senha, visite o seguinte endereço:') . '\r\n\r\n';
-    $message .= network_site_url('wp-login.php?action=rp&key=$key&login=' . rawurlencode($user_login), 'login') . '\r\n\r\n';
-
-    $blogname = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
-
-    $title = sprintf('%s - Redefinir sua senha', $blogname);
-    $title = apply_filters('retrieve_password_title', $title);
-    $message = apply_filters('retrieve_password_message', $message, $key);
-
-    if ($message && !wp_mail($user_email, $title, $message) ) {
-      return new WP_Error(
-        'cant-send-forget-password-email', 
-        'E-mail não pode ser enviado. Problema técnico.', 
-        ['status' => 403]
-      );
-    }
-
-    return true;
-  }
-
-  private function validate_cpf($cpf) {
-    $cpf = preg_replace('/[^0-9]/', '', (string) $cpf);
-
-    if (strlen($cpf) != 11) {
-      return false;
-    }
-    
-    for ($i = 0, $j = 10, $sum = 0; $i < 9; $i++, $j--) {
-      $sum += $cpf{$i} * $j;
-    }
-
-    $rest = $sum % 11;
-    
-    if ($cpf{9} != ($rest < 2 ? 0 : 11 - $rest)) {
-      return false;
-    }
-
-    for ($i = 0, $j = 11, $sum = 0; $i < 10; $i++, $j--) {
-      $sum += $cpf{$i} * $j;
-    }
-    
-    $rest = $sum % 11;
-
-    return $cpf{10} == ($rest < 2 ? 0 : 11 - $rest);
-  }
-
-  private function apply_mask_string($mask, $text) {
-    $text = str_replace(' ', '', $text);
-
-    for($i = 0; $i < strlen($text); $i++) {
-      $mask[strpos($mask, '#')] = $text[$i];
-    }
-
-    return $mask;
-  }
-
-  private function remove_mask_string($value, $type = 'cpf') {
-    return preg_replace('/[\\.-]*/i', '', $value, -1);
-  }
-
-  private function get_acf_key($field_name) {
-    global $wpdb;
-    
-    $length = strlen($field_name);
-    
-    return $wpdb->get_var("
-      SELECT `meta_key`
-      FROM {$wpdb->postmeta}
-      WHERE `meta_key` LIKE 'field_%' AND `meta_value` LIKE '%\"name\";s:$length:\"$field_name\";%';
-      ");
+    return $args;
   }
 }
