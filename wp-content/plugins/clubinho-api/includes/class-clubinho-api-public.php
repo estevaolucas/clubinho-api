@@ -5,7 +5,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
   protected $endpoints;
 
   public function __construct() {
-    $this->namespace = 'wp/v1';
+    $this->namespace = 'v1';
 
     $this->load_dependencies(); 
     $this->add_filters();
@@ -48,20 +48,16 @@ class Clubinho_API_Public extends WP_REST_Controller {
   public function register_routes() {
     // create user
     register_rest_route( $this->namespace, '/create-user', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this->endpoints, 'create_user'],
-        'args'                => $this->endpoints->get_user_default_args()
-      ]
+      'methods'             => WP_REST_Server::EDITABLE,
+      'callback'            => [$this->endpoints, 'create_user'],
+      'args'                => $this->endpoints->get_user_default_args()
     ]);
 
     // create/login facebook user
     register_rest_route( $this->namespace, '/facebook', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this->endpoints, 'create_or_signin_from_facebook'],
-        'args'                => ['access_token' => ['required' => true]]
-      ]
+      'methods'             => WP_REST_Server::EDITABLE,
+      'callback'            => [$this->endpoints, 'create_or_signin_from_facebook'],
+      'args'                => ['access_token' => ['required' => true]]
     ]);
 
     register_rest_route( $this->namespace, '/me', [
@@ -82,12 +78,10 @@ class Clubinho_API_Public extends WP_REST_Controller {
 
     // add child
     register_rest_route($this->namespace, '/me/child', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this->endpoints, 'create_child'],
-        'permission_callback' => [$this->endpoints, 'user_authorized'],
-        'args'                => $this->endpoints->get_child_default_args()
-      ]
+      'methods'             => WP_REST_Server::EDITABLE,
+      'callback'            => [$this->endpoints, 'create_child'],
+      'permission_callback' => [$this->endpoints, 'user_authorized'],
+      'args'                => $this->endpoints->get_child_default_args()
     ]);
 
     register_rest_route($this->namespace, '/me/child/(?P<id>\d+)', [
@@ -108,36 +102,41 @@ class Clubinho_API_Public extends WP_REST_Controller {
     ]);
 
     register_rest_route($this->namespace, '/me/child/(?P<id>\d+)/confirm/(?P<eventId>\d+)', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this->endpoints, 'confirm_event_for_child'],
-        'permission_callback' => [$this->endpoints, 'user_authorized'],
-        'args'                => $this->endpoints->get_child_confirm_default_args()
-      ]
+      'methods'             => WP_REST_Server::EDITABLE,
+      'callback'            => [$this->endpoints, 'confirm_event_for_child'],
+      'permission_callback' => [$this->endpoints, 'user_authorized'],
+      'args'                => $this->endpoints->get_child_confirm_default_args()
     ]);
 
     // send link to create a new password
     register_rest_route($this->namespace, '/forgot-password', [
-      [
-        'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this->endpoints, 'forgot_password'],
-        'args'                => ['email', ['required' => true]],
-      ]
+      'methods'             => WP_REST_Server::EDITABLE,
+      'callback'            => [$this->endpoints, 'forgot_password'],
+      'args'                => ['email', ['required' => true]],
     ]);
 
     register_rest_route($this->namespace, '/get-schedule-list', [
-      [
-        'methods'             => WP_REST_Server::READABLE,
-        'callback'            => [$this->endpoints, 'get_shedule'],
-        'args'                => ['size', ['required' => false]],
-      ]
+      'methods'             => WP_REST_Server::READABLE,
+      'callback'            => [$this->endpoints, 'get_shedule'],
+      'args'                => ['size', ['required' => false]],
+    ]);
+
+    register_rest_route($this->namespace, 'token', [
+      'methods'               => WP_REST_Server::EDITABLE,
+      'callback'              => [$this->endpoints, 'generate_token'],
+    ]);
+
+    register_rest_route($this->namespace, 'token/validate', [
+      'methods'               => WP_REST_Server::EDITABLE,
+      'callback'              => [$this->endpoints, 'validate_token'],
     ]);
   }
 
   public function add_filters() {
     $this->loader->add_filter('jwt_auth_token_before_dispatch', $this, 'filter_for_auth_response', 20, 2);
-
     $this->loader->add_filter('manage_edit-child_columns', $this, 'filter_admin_manage_coluns');
+    $this->loader->add_filter('rest_url_prefix', $this, 'filter_api_prefix');
+    $this->loader->add_filter('rest_endpoints', $this, 'filter_remove_default_endpoints');
   }
 
   public function add_actions() {
@@ -161,6 +160,20 @@ class Clubinho_API_Public extends WP_REST_Controller {
     unset($coluns['date']);
 
     return $coluns;
+  }
+
+  public function filter_api_prefix($prefix) { 
+    return 'api';
+  }
+
+  public function filter_remove_default_endpoints($endpoints) {
+    foreach( $endpoints as $route => $data ) {
+      if (0 === stripos( $route, '/wp/v2' ) || 0 === stripos( $route, '/oembed/1.0' ) ) {
+        unset( $endpoints[ $route ] );
+      }
+    }
+
+    return $endpoints;
   }
 
   public function action_manage_coluns($column_name, $post_id) {

@@ -3,7 +3,7 @@
 class Clubinho_API_Endpoints {
 
   public function __construct() {
-    $this->namespace = 'wp/v1';
+    $this->namespace = 'v1';
     class_alias('Clubinho_API_Helper', 'Helper');
   }
 
@@ -578,5 +578,23 @@ class Clubinho_API_Endpoints {
     ];
 
     return $args;
+  }
+
+  public function generate_token($request) {
+    global $wp_rest_server;
+
+    $login_request = new WP_REST_Request('POST', '/jwt-auth/v1/token');
+    $login_request->set_param('username', $request->get_param('username'));
+    $login_request->set_param('password', $request->get_param('password'));
+    
+    return $wp_rest_server->dispatch($login_request);
+  }
+
+  public function validate_token($request) {
+    global $wp_rest_server;
+
+    $login_request = new WP_REST_Request('POST', '/jwt-auth/v1/token/validate');
+    
+    return $wp_rest_server->dispatch($login_request);
   }
 }
