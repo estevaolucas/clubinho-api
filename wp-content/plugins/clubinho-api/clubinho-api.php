@@ -17,9 +17,6 @@ if (!defined('WPINC')) {
 
 $api = null;
 
-add_filter( 'rest_url_prefix', function( $prefix ) { return 'api'; } );
-
-
 add_action('init', function() {
   if (!class_exists( 'WP_REST_Controller')) {
     return;
@@ -35,7 +32,7 @@ add_action('init', function() {
 add_action('rest_api_init', function() {
   global $api;
   $api->register_routes();
-}, 30);
+}, 0);
 
 register_activation_hook(__FILE__, function() {
   require_once plugin_dir_path(__FILE__) . 'includes/class-clubinho-api-activator.php';

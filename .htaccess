@@ -12,4 +12,4 @@ SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 
 </IfModule>
 
-
+Header set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
