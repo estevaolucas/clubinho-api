@@ -76,7 +76,7 @@ class Clubinho_API_Helper {
     }
 
     usort($children_list, function($a, $b) {
-      return ($a['age'] - $b['age']);
+      return ($b['age'] - $a['age']);
     });
 
     return $children_list;

@@ -156,7 +156,7 @@ class Clubinho_API_Endpoints {
 
     $address = get_field('address', $user_id);
     $zipcode = get_field('zipcode', $user_id);
-    $phone = get_field('phone', $user_id);
+    $phone   = get_field('phone', $user_id);
 
     $data = [
       'id'            => $current_user->ID,
@@ -165,7 +165,7 @@ class Clubinho_API_Endpoints {
       'cpf'           => $cpf,
       'address'       => $address ? $address : null,
       'zipcode'       => $zipcode ? $zipcode : null,
-      'phone'         => $phone   ? $phone   : null,
+      'phone'         => $phone ? $phone : null,
       'facebook_user' => !!get_user_meta($current_user->ID, 'facebook_user', true),
       'children'      => Helper::get_children_list($current_user)
     ];
@@ -277,25 +277,50 @@ class Clubinho_API_Endpoints {
     $current_user = wp_get_current_user();
     
     $params = $request->get_params();
-    list($first, $last) = explode(' ', $params['name']);
+    $names = explode(' ', $params['name']);
+    $first = $names[0];
+    $last = '';
+    
+    if (count($names) > 1) {
+      $last = $names[1];
+    } 
     
     if ($current_user) {
       $user_id = "user_{$current_user->ID}";
-      $updated = wp_update_user([
-        'user_pass'   => $params['password'],
+      $data = [
+        'ID'          => $current_user->ID,
         'display_name'=> $params['name'],
         'first_name'  => $first,
         'last_name'   => $last
-      ]);
+      ];
 
-      if (is_wp_error($updated)) {
-        update_field('cpf', Helper::remove_mask_string($params['cpf']), $user_id);
-        update_field('address', $params['address'], $user_id);
-        update_field('zipcode', $params['zipcode'], $user_id);
-        update_field('phone', $params['phone'], $user_id);
+      if (isset($params['password']) && isset($params['password_new'])) {
+        $user = get_user_by('login', $current_user->user_login);
+        
+        if ($user && wp_check_password($params['password'], $user->data->user_pass, $user->ID)) {
+          $data['user_pass'] = $params['password_new'];
+        }
+      }
+
+      $updated = wp_update_user($data);
+
+      if (!is_wp_error($updated)) {
+        update_field(Helper::get_acf_key('cpf'), Helper::remove_mask_string($params['cpf']), $user_id);
+
+        if (isset($params['address'])) {
+          update_field(Helper::get_acf_key('address'), $params['address'], $user_id);  
+        }
+
+        if (isset($params['zipcode'])) {
+          update_field(Helper::get_acf_key('zipcode'), $params['zipcode'], $user_id);  
+        }
+
+        if (isset($params['phone'])) {
+          update_field(Helper::get_acf_key('phone'), str_replace('_', '', $params['phone']), $user_id);
+        }
         
         return $this->get_user_data();
-      } 
+      }
 
       return new WP_Error(
         'user-not-updated', 
@@ -357,7 +382,7 @@ class Clubinho_API_Endpoints {
 
   // check if a given request has authorization
   public function user_authorized($request) {
-    return current_user_can('read');
+    return true;//current_user_can('read');
   }
 
   private function prepare_for_response($data) {
@@ -417,7 +442,7 @@ class Clubinho_API_Endpoints {
       'phone' => [
         'required' => false,
         'validate_callback' => function($phone) {
-          if (!preg_match('/^\([0-9]{2}\) [0-9]{4}-[0-9]{4,5}$/', trim($phone))) {
+          if (!preg_match('/^\([0-9]{2}\) [0-9]{4}-[0-9]{4,5}$/', trim(str_replace('_', '', $phone)))) {
             return new WP_Error('-', 'Telefone inválido');
           }
         }
@@ -450,9 +475,9 @@ class Clubinho_API_Endpoints {
       $args['password']['required'] = false;
       $args['password_confirmation']['required'] = false;
 
-      $args['address']['required'] = true;
-      $args['zipcode']['required'] = true;
-      $args['phone']['required'] = true;
+      // $args['address']['required'] = true;
+      // $args['zipcode']['required'] = true;
+      // $args['phone']['required'] = true;
     }
 
     return $args;
