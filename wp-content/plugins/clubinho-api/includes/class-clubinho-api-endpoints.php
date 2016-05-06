@@ -299,6 +299,12 @@ class Clubinho_API_Endpoints {
         
         if ($user && wp_check_password($params['password'], $user->data->user_pass, $user->ID)) {
           $data['user_pass'] = $params['password_new'];
+        } else {
+          return new WP_Error(
+            'user-not-updated', 
+            'Senha incorreta', 
+            ['status' => 403]
+          );
         }
       }
 
@@ -451,16 +457,18 @@ class Clubinho_API_Endpoints {
       'password' => [
         'required' => true,
         'validate_callback' => function($password, $request) {
-          if ($request->get_param('password_confirmation') !== $password) {
-            return new WP_Error('-', 'Password não confere');
+          $is_edit = $request->get_route() == '/v1/me';
+
+          if (!$is_edit && $request->get_param('password_confirmation') !== $password) {
+            return new WP_Error('-', 'A senha não confere');
           }
 
           if (strlen($password) < 5) {
-            return new WP_Error('-', 'Password precisa ter no mínimo 5 caracteres');
+            return new WP_Error('-', 'A senha precisa ter no mínimo 5 caracteres');
           }
 
           if (strlen($password) > 12) {
-            return new WP_Error('-', 'Password precisa ter no máximo 12 caracteres');
+            return new WP_Error('-', 'A senha precisa ter no máximo 12 caracteres');
           }
         }
       ],
@@ -473,11 +481,20 @@ class Clubinho_API_Endpoints {
       unset($args['email']);
 
       $args['password']['required'] = false;
-      $args['password_confirmation']['required'] = false;
+      unset($args['password_confirmation']);
 
-      // $args['address']['required'] = true;
-      // $args['zipcode']['required'] = true;
-      // $args['phone']['required'] = true;
+      $args['password_new'] = [
+        'required' => false,
+        'validate_callback' => function($password, $request) {
+          if (strlen($password) < 5) {
+            return new WP_Error('-', 'Nova senha precisa ter no mínimo 5 caracteres');
+          }
+
+          if (strlen($password) > 12) {
+            return new WP_Error('-', 'Nova senha precisa ter no máximo 12 caracteres');
+          }
+        }
+      ];
     }
 
     return $args;
