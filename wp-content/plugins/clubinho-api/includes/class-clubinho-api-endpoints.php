@@ -440,7 +440,7 @@ class Clubinho_API_Endpoints {
       'zipcode' => [
         'required' => false,
         'validate_callback' => function($zipcode, $request, $key) {
-          if (!preg_match('/^[0-9]{5}(-)?[0-9]{3}$/', trim($zipcode))) {
+          if (strlen($zipcode) && !preg_match('/^[0-9]{5}(-)?[0-9]{3}$/', trim($zipcode))) {
             return new WP_Error('-', 'CEP inválido');
           }
         }
@@ -448,7 +448,7 @@ class Clubinho_API_Endpoints {
       'phone' => [
         'required' => false,
         'validate_callback' => function($phone) {
-          if (!preg_match('/^\([0-9]{2}\) [0-9]{4}-[0-9]{4,5}$/', trim(str_replace('_', '', $phone)))) {
+          if (strlen($phone) && !preg_match('/^\([0-9]{2}\) [0-9]{4}-[0-9]{4,5}$/', trim(str_replace('_', '', $phone)))) {
             return new WP_Error('-', 'Telefone inválido');
           }
         }
