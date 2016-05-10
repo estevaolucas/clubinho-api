@@ -1,47 +1,90 @@
 <?php
-
-define('WP_DEBUG', true);
-
-// ** MySQL settings ** //
-/** The name of the database for WordPress */
-define('DB_NAME', 'clubinho');
-
-/** MySQL database username */
-define('DB_USER', 'root');
-
-/** MySQL database password */
-define('DB_PASSWORD', 'root');
-
-/** MySQL hostname */
-define('DB_HOST', 'localhost');
-
-/** Database Charset to use in creating database tables. */
-define('DB_CHARSET', 'utf8');
-
-/** The Database Collate type. Don't change this if in doubt. */
-define('DB_COLLATE', '');
-
-define('AUTH_KEY',         '%z,(F;23#%[UN|~mU&~1s^`H0gc>_vawV3aAsSn|#pqhIT16FOWp_957M<<Bvk{t');
-define('SECURE_AUTH_KEY',  'j{M-V+y-kR4y~xH|.VfO:=a{i+06Z4TF2UD_d2 #+%>;nl!x/`RPUwRBb;[tb=g+');
-define('LOGGED_IN_KEY',    '|DKHiE=.8hvms_ b5(;`=)0cR,QTBoDPakz0 *M$_NS}rNx|hvWqp]]l+Yx6rU,?');
-define('NONCE_KEY',        '-dd@@ZhC?xYcCN-=z/|q%kkVR}?3W-d#hb7T1}-}QA.Cj]sC-kg`-}5#(^yTCUht');
-define('AUTH_SALT',        ')po3gw3>_Q2)mfIqm@4N&C,O.FPZC:[yv(nU<-l7[gIWx&%}S)Wm+<>p+j,AL8wA');
-define('SECURE_AUTH_SALT', 'oo?DG_b*ZW1(4K7k/k-BlwY5**^kUPg,j-95)lJ,lFu(iDc3,)>&|ft1]d)+^,j|');
-define('LOGGED_IN_SALT',   'L`)ON,[g%6=M<}Li+QE+,~dWFKd]jsy-lp7+>kR9U0v2mp&:Bl;_*iy$t|s0$m@!');
-define('NONCE_SALT',       '5{Lrgy-aPiP:+[*{c#je(.l6[5tnq%+3d6 T/eDg-T^P5iy79r8e0F=~< B~NZ9,');
+/**
+ * WordPress Multi-Environment Config
+ * 
+ * Loads config file based on current environment, environment can be set
+ * in either the environment variable 'WP_ENV' or can be set based on the 
+ * server hostname.
+ * 
+ * This also overrides the option_home and option_siteurl settings in the 
+ * WordPress database to ensure site URLs are correct between environments.
+ * 
+ * Common environment names are as follows, though you can use what you wish:
+ * 
+ *   production
+ *   staging
+ *   development
+ * 
+ * For each environment a config file must exist named wp-config.{environment}.php
+ * with any settings specific to that environment. For example a development 
+ * environment would use the config file: wp-config.development.php
+ * 
+ * Default settings that are common to all environments can exist in wp-config.default.php
+ * 
+ * @package    Studio 24 WordPress Multi-Environment Config
+ * @version    1.0.1
+ * @author     Studio 24 Ltd  <info@studio24.net>
+ */
 
 
-$table_prefix = 'wp_';
+// Absolute path to the WordPress directory
+if (!defined('ABSPATH')) {
+    define('ABSPATH', dirname(__FILE__) . '/');
+}
 
-define('JWT_AUTH_SECRET_KEY', 'clubinho-api-token');
-define('JWT_AUTH_CORS_ENABLE', true);
+// Try environment variable 'WP_ENV'
+if (getenv('WP_ENV') !== false) {
+    // Filter non-alphabetical characters for security
+    define('WP_ENV', preg_replace('/[^a-z]/', '', getenv('WP_ENV')));
+} 
+
+// Define site host
+if (isset($_SERVER['HTTP_X_FORWARDED_HOST']) && !empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+    $hostname = $_SERVER['HTTP_X_FORWARDED_HOST'];
+} else {
+    $hostname = $_SERVER['HTTP_HOST'];
+}
+
+// If WordPress has been bootstrapped via WP-CLI detect environment from --env=<environment> argument
+if (PHP_SAPI == "cli" && defined('WP_CLI_ROOT')) {
+    foreach ($argv as $arg) {
+        if (preg_match('/--env=(.+)/', $arg, $m)) {
+            define('WP_ENV', $m[1]);
+        }
+    }
+    $hostname = "localhost";
+}
+
+// Filter
+$hostname = filter_var($hostname, FILTER_SANITIZE_STRING);
+
+// Try server hostname
+if (!defined('WP_ENV')) {
+    // Set environment based on hostname
+    include ABSPATH . '/wp-config.env.php';
+}
+
+// Are we in SSL mode?
+if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') ||
+    (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) {
+    $protocol = 'https://';
+} else {
+    $protocol = 'http://';
+}
+
+// Load default config
+include ABSPATH . '/wp-config.default.php';
+
+// Load config file for current environment
+include ABSPATH . '/wp-config.' . WP_ENV . '.php';
+
+// Clean up
+unset($hostname, $protocol);
+
+/** End of WordPress Multi-Environment Config **/
 
 
 /* That's all, stop editing! Happy blogging. */
-
-/** Absolute path to the WordPress directory. */
-if ( !defined('ABSPATH') )
-	define('ABSPATH', dirname(__FILE__) . '/');
 
 /** Sets up WordPress vars and included files. */
 require_once(ABSPATH . 'wp-settings.php');
