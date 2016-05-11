@@ -40,10 +40,11 @@ class Clubinho_API_Helper {
               $events->the_post();
 
               array_push($timeline, [
-                'type'  => 'event',
-                'id'    => $events->post->ID,
-                'title' => $events->post->post_title,
-                'date'  => get_field('date') . ' ' . get_field('time')
+                'type'   => 'event',
+                'id'     => $events->post->ID,
+                'title'  => $events->post->post_title,
+                'date'   => get_field('date') . ' ' . get_field('time'),
+                'points' => 10 // FIXME: get dynamic value
               ]);
             }
           }
@@ -54,10 +55,10 @@ class Clubinho_API_Helper {
             the_row();
                 
             array_push($timeline, [
-              'type'  => 'reedem',
-              'prize'      => get_sub_field('prize'),
-              'pontuation' => get_sub_field('pontuation'),
-              'date'       => get_sub_field('date')
+              'type'   => 'reedem',
+              'prize'  => get_sub_field('prize'),
+              'points' => get_sub_field('pontuation'),
+              'date'   => get_sub_field('date') . " 00:00:00"
             ]);
           }
         }

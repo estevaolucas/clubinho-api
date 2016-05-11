@@ -112,13 +112,13 @@ class Clubinho_API_Public extends WP_REST_Controller {
     register_rest_route($this->namespace, '/forgot-password', [
       'methods'             => WP_REST_Server::EDITABLE,
       'callback'            => [$this->endpoints, 'forgot_password'],
-      'args'                => ['email', ['required' => true]],
+      'args'                => ['email' => ['required' => true]],
     ]);
 
     register_rest_route($this->namespace, '/get-schedule-list', [
       'methods'             => WP_REST_Server::READABLE,
       'callback'            => [$this->endpoints, 'get_shedule'],
-      'args'                => ['size', ['required' => false]],
+      'args'                => ['size' => ['required' => false]],
     ]);
 
     register_rest_route($this->namespace, 'token', [

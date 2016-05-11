@@ -24,6 +24,7 @@
  */
 switch ($hostname) {
     case 'localhost':
+    case '192.168.25.15':
         define('WP_ENV', 'development');
         break;
     

@@ -337,7 +337,7 @@ class Clubinho_API_Endpoints {
   }
 
   public function forgot_password( $request ) {
-    $email      = $request->get_params('email');
+    $email      = $request->get_param('email');
     $email_sent = Helper::send_forgot_password($email);
     
     if (!is_wp_error($email_sent)) {
@@ -388,7 +388,7 @@ class Clubinho_API_Endpoints {
 
   // check if a given request has authorization
   public function user_authorized($request) {
-    return true;//current_user_can('read');
+    return current_user_can('read');
   }
 
   private function prepare_for_response($data) {
