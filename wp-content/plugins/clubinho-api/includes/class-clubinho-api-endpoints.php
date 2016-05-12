@@ -11,14 +11,14 @@ class Clubinho_API_Endpoints {
     $params = $request->get_params();
     list($first, $last) = explode(' ', $params['name']);
 
-    $data = [
+    $data = array(
       'user_login'   => Helper::remove_mask_string($params['cpf']),
       'user_pass'    => $params['password'],
       'user_email'   => $params['email'],
       'first_name'   => $first,
       'last_name'    => $last,
       'display_name' => $params['name']
-    ];
+    );
 
     $user_id = wp_insert_user($data);
 
@@ -42,13 +42,13 @@ class Clubinho_API_Endpoints {
         update_field(Helper::get_acf_key('phone'), $params['phone'], $acf_user_id);        
       }       
 
-      $data = $this->prepare_for_response(['message' => 'Usuário criado']);
+      $data = $this->prepare_for_response(array('message' => 'Usuário criado'));
       return new WP_REST_Response($data, 200);
     } else {
       return new WP_Error(
         'user-not-created', 
         $user_id->get_error_message(), 
-        ['status' => 403]
+        array('status' => 403)
       );
     }
   }
@@ -77,7 +77,7 @@ class Clubinho_API_Endpoints {
       return new WP_Error(
         'user-not-created', 
         $result['error']['message'], 
-        ['status' => 403]
+        array('status' => 403)
       );
     }
 
@@ -93,14 +93,14 @@ class Clubinho_API_Endpoints {
       if (!$user_id && $email_exists == false) {
         $password = wp_generate_password(12, false);
 
-        $data = [
+        $data = array(
           'user_login'  => $username,
           'user_pass'   => $password,
           'user_email'  => $email,
           'first_name'  => $result['first_name'],
           'last_name'   => $result['last_name'],
           'display_name'=> $result['name']
-        ];
+        );
 
         $user_id = wp_insert_user($data);
         
@@ -108,7 +108,7 @@ class Clubinho_API_Endpoints {
           return new WP_Error(
             'user-not-created', 
             $user_id->get_error_message(), 
-            ['status' => 403]
+            array('status' => 403)
           );
         } else {
           add_user_meta($user_id, 'facebook_user', true);
@@ -135,7 +135,7 @@ class Clubinho_API_Endpoints {
       return new WP_Error(
         'user-not-created', 
         'Necessário permitir o acesso ao seu email.', 
-        ['status' => 403]
+        array('status' => 403)
       );
     }
   }
@@ -158,7 +158,7 @@ class Clubinho_API_Endpoints {
     $zipcode = get_field('zipcode', $user_id);
     $phone   = get_field('phone', $user_id);
 
-    $data = [
+    $data = array(
       'id'            => $current_user->ID,
       'name'          => $current_user->display_name,
       'email'         => $current_user->user_email,
@@ -168,7 +168,7 @@ class Clubinho_API_Endpoints {
       'phone'         => $phone ? $phone : null,
       'facebook_user' => !!get_user_meta($current_user->ID, 'facebook_user', true),
       'children'      => Helper::get_children_list($current_user)
-    ];
+    );
     
     return new WP_REST_Response($this->prepare_for_response($data), 200);
   }
@@ -177,22 +177,22 @@ class Clubinho_API_Endpoints {
     $current_user = wp_get_current_user();
     $params = $request->get_params();
 
-    $child_id = wp_insert_post([
+    $child_id = wp_insert_post(array(
       'post_author' => $current_user->ID,
       'post_title'  => $params['name'],
       'post_status' => 'publish',
       'post_type'   => 'child'
-    ]);
+    ));
 
     if (!is_wp_error($child_id)) {
       update_field(Helper::get_acf_key('age'), $params['age'], $child_id);
       update_field(Helper::get_acf_key('avatar'), $params['avatar'], $child_id);
       add_post_meta($child_id, 'created_at', date('Y-m-d H:i:s'));
 
-      $data = $this->prepare_for_response([
+      $data = $this->prepare_for_response(array(
         'message'  => "A criança {$params['name']} foi adicionada.",
         'children' => Helper::get_children_list($current_user)
-      ]);
+      ));
 
       return new WP_REST_Response($data, 200);
     }
@@ -200,7 +200,7 @@ class Clubinho_API_Endpoints {
     return new WP_Error(
       'child-not-created', 
       $child_id->get_error_message(), 
-      ['status' => 403]
+      array('status' => 403)
     );
   }
 
@@ -208,20 +208,20 @@ class Clubinho_API_Endpoints {
     $current_user = wp_get_current_user();
     $params = $request->get_params();
 
-    $child_id = wp_update_post([
+    $child_id = wp_update_post(array(
       'ID'          => $params['id'],
       'post_title'  => $params['name']
-    ]);
+    ));
 
     if (!is_wp_error($child_id)) {
       update_field(Helper::get_acf_key('avatar'), $params['avatar'], $child_id);
       update_field(Helper::get_acf_key('age'), $params['age'], $child_id);
       update_post_meta($child_id, 'updated_at', date('Y-m-d H:i:s'));
 
-      $data = $this->prepare_for_response([
+      $data = $this->prepare_for_response(array(
         'message'  => "A criança {$params['name']} foi atualizada.",
         'children' => Helper::get_children_list($current_user)
-      ]);
+      ));
 
       return new WP_REST_Response($data, 200);
     }
@@ -229,7 +229,7 @@ class Clubinho_API_Endpoints {
     return new WP_Error(
       'child-not-updated', 
       $child_id->get_error_message(), 
-      ['status' => 403]
+      array('status' => 403)
     );
   }
 
@@ -242,10 +242,10 @@ class Clubinho_API_Endpoints {
     if ($child_id) {
       update_post_meta($child_id, 'deleted_at', date('Y-m-d H:i:s'));
 
-      $data = $this->prepare_for_response([
+      $data = $this->prepare_for_response(array(
         'message'  => "A criança foi removida.",
         'children' => Helper::get_children_list($current_user)
-      ]);
+      ));
 
       return new WP_REST_Response($data, 200);
     }
@@ -253,7 +253,7 @@ class Clubinho_API_Endpoints {
     return new WP_Error(
       'child-not-removed', 
       $child_id->get_error_message(), 
-      ['status' => 403]
+      array('status' => 403)
     );
   }
 
@@ -266,9 +266,9 @@ class Clubinho_API_Endpoints {
     $events[] = $eventId;
     update_field(Helper::get_acf_key('events'), $events, $id);
 
-    $data = $this->prepare_for_response([
+    $data = $this->prepare_for_response(array(
       'message' => 'Evento confirmado'
-    ]);
+    ));
 
     return new WP_REST_Response($data, 200);
   }
@@ -287,12 +287,12 @@ class Clubinho_API_Endpoints {
     
     if ($current_user) {
       $user_id = "user_{$current_user->ID}";
-      $data = [
+      $data = array(
         'ID'          => $current_user->ID,
         'display_name'=> $params['name'],
         'first_name'  => $first,
         'last_name'   => $last
-      ];
+      );
 
       if (isset($params['password']) && isset($params['password_new'])) {
         $user = get_user_by('login', $current_user->user_login);
@@ -303,7 +303,7 @@ class Clubinho_API_Endpoints {
           return new WP_Error(
             'user-not-updated', 
             'Senha incorreta', 
-            ['status' => 403]
+            array('status' => 403)
           );
         }
       }
@@ -331,7 +331,7 @@ class Clubinho_API_Endpoints {
       return new WP_Error(
         'user-not-updated', 
         $updated->get_error_message(), 
-        ['status' => 403]
+        array('status' => 403)
       );
     }
   }
@@ -341,9 +341,9 @@ class Clubinho_API_Endpoints {
     $email_sent = Helper::send_forgot_password($email);
     
     if (!is_wp_error($email_sent)) {
-      $data = $this->prepare_for_response([
+      $data = $this->prepare_for_response(array(
         'message' => 'O link para redefinir a senha foi enviado para seu e-mail.'
-      ]);
+      ));
 
       return new WP_REST_Response($data, 200);
     } else {
@@ -352,26 +352,26 @@ class Clubinho_API_Endpoints {
   }
 
   public function get_shedule($request) {
-    $events = [];
-    $posts = new WP_Query([
+    $events = array();
+    $posts = new WP_Query(array(
       'post_type'      => 'event',
       'posts_per_page' => -1,
       'post_status'    => 'publish',
-      'meta_query'     => [
+      'meta_query'     => array(
         'relation' => 'AND',
-        [
+        array(
           'key'       => 'date',
           'value'     => date('Y-m-d'),
           'compare'   => '>=',
-        ]
-      ]
-    ]);
+        )
+      )
+    ));
 
     if ($posts->have_posts()) {
       while ($posts->have_posts()) {
         $posts->the_post();
 
-        array_push($events, [
+        array_push($events, array(
           'id'      => get_the_ID(),
           'date'    => get_field('date') . ' ' . get_field('time'),
           'title'   => get_the_title(),
@@ -379,7 +379,7 @@ class Clubinho_API_Endpoints {
           'content' => get_the_content(),
           'author'  => get_field('author'),
           'cover'   => get_field('cover')
-        ]);
+        ));
       }
     }
 
@@ -392,15 +392,15 @@ class Clubinho_API_Endpoints {
   }
 
   private function prepare_for_response($data) {
-    return [ 'data' => $data ];
+    return array('data' => $data);
   }
 
   public function get_user_default_args($type = 'create_user') {
-    $args = [
-      'name' => [
+    $args = array(
+      'name' => array(
         'required' => true
-      ],
-      'email' => [
+      ),
+      'email' => array(
         'required' => true,
         'description' => 'E-mail inválido.',
         'validate_callback' => function($email, $request, $key) {
@@ -418,8 +418,8 @@ class Clubinho_API_Endpoints {
             return new WP_Error('-', $message);
           }
         }
-      ],
-      'cpf' => [
+      ),
+      'cpf' => array(
         'description' => 'CPF inválido',
         'required' => true,
         'validate_callback' => function($cpf, $request, $key) use ($type) {
@@ -433,28 +433,27 @@ class Clubinho_API_Endpoints {
             return new WP_Error('-', 'CPF já cadastrado.');
           }
         }
-      ],
-      'address' => [
+      ),
+      'address' => array(
         'required' => false
-      ],
-      'zipcode' => [
+      ),
+      'zipcode' => array(
         'required' => false,
         'validate_callback' => function($zipcode, $request, $key) {
           if (strlen($zipcode) && !preg_match('/^[0-9]{5}(-)?[0-9]{3}$/', trim($zipcode))) {
             return new WP_Error('-', 'CEP inválido');
           }
         }
-      ],
-      'phone' => [
+      ),
+      'phone' => array(
         'required' => false,
         'validate_callback' => function($phone) {
           if (strlen($phone) && !preg_match('/^\([0-9]{2}\) [0-9]{4}-[0-9]{4,5}$/', trim(str_replace('_', '', $phone)))) {
             return new WP_Error('-', 'Telefone inválido');
           }
         }
-      ],
-
-      'password' => [
+      ),
+      'password' => array(
         'required' => true,
         'validate_callback' => function($password, $request) {
           $is_edit = $request->get_route() == '/v1/me';
@@ -471,11 +470,11 @@ class Clubinho_API_Endpoints {
             return new WP_Error('-', 'A senha precisa ter no máximo 12 caracteres');
           }
         }
-      ],
-      'password_confirmation' => [
+      ),
+      'password_confirmation' => array(
         'required' => true
-      ]
-    ];
+      )
+    );
 
     if ($type == 'update_user') {
       unset($args['email']);
@@ -483,7 +482,7 @@ class Clubinho_API_Endpoints {
       $args['password']['required'] = false;
       unset($args['password_confirmation']);
 
-      $args['password_new'] = [
+      $args['password_new'] = array(
         'required' => false,
         'validate_callback' => function($password, $request) {
           if (strlen($password) < 5) {
@@ -494,24 +493,24 @@ class Clubinho_API_Endpoints {
             return new WP_Error('-', 'Nova senha precisa ter no máximo 12 caracteres');
           }
         }
-      ];
+      );
     }
 
     return $args;
   }
 
   public function get_child_default_args($type = 'create_child') {
-    $args = [
-      'name' => [
+    $args = array(
+      'name' => array(
         'required' => true,
         'validate_callback' => function($name, $request, $key) {
           $current_user = wp_get_current_user();
-          $children = new WP_Query([
+          $children = new WP_Query(array(
             'post_type'      => 'child',
             'posts_per_page' => -1,
             'post_status'    => 'publish',
             'author'         => $current_user->ID
-          ]);
+          ));
 
           $exists = false;
           if ($children->have_posts()) {
@@ -533,78 +532,78 @@ class Clubinho_API_Endpoints {
             return new WP_Error('-', 'Um filho com esse nome já foi cadastrado.');
           }
         }
-      ],
-      'age' => [
+      ),
+      'age' => array(
         'required' => true
-      ],
-      'avatar' => [
+      ),
+      'avatar' => array(
         'required' => true,
         'validate_callback' => function($avatar, $request, $key) {
-          $avatars = ['ana', 'luiz', 'maria'];
+          $avatars = array('ana', 'luiz', 'maria');
 
           if (!in_array($avatar, $avatars)) {
             return new WP_Error('-', 'Avatar não válido');
           }
         }
-      ]
-    ];
+      )
+    );
 
     if ($type == 'remove_child') {
-      $args = [];
+      $args = array();
     }
 
     if ($type == 'update_child' || $type == 'remove_child') {
-      $args['id'] = [
+      $args['id'] = array(
         'required' => true,
         'validate_callback' => function($id, $request, $key) {
           $current_user = wp_get_current_user();
-          $child = new WP_Query([
+          $child = new WP_Query(array(
             'p'              => $id,
             'post_type'      => 'child',
             'posts_per_page' => -1,
             'post_status'    => 'publish',
             'author'         => $current_user->ID
-          ]);
+          ));
 
           if (!$child->have_posts()) {
             return new WP_Error('-', 'Não há criança com esses dados!');
           }
         } 
-      ];
+      );
     }
 
     return $args;
   }
 
   public function get_child_confirm_default_args() {
-    $args = [
-      'id' => [
+    $args = array(
+      'id' => array(
         'required' => true,
         'validate_callback' => function($id, $request, $key) {
           $current_user = wp_get_current_user();
-          $child = new WP_Query([
+          $child = new WP_Query(array(
             'p'              => $id,
             'post_type'      => 'child',
             'posts_per_page' => -1,
             'post_status'    => 'publish',
             'author'         => $current_user->ID
-          ]);
+          ));
 
           if (!$child->have_posts()) {
             return new WP_Error('-', 'Não há criança com esses dados!');
           }
         }
-      ],
-      'eventId' => [
+      ),
+      'eventId' => array(
         'required' => true,
         'validate_callback' => function($eventId, $request, $key) {
           $current_user = wp_get_current_user();
-          $event = new WP_Query([
+          $event = new WP_Query(array(
             'p'              => $eventId,
             'post_type'      => 'event',
             'posts_per_page' => -1,
             'post_status'    => 'publish'
-          ]);
+          ));
 
           if (!$event->have_posts()) {
             return new WP_Error('-', 'Não há criança com esses dados!');
@@ -616,8 +615,8 @@ class Clubinho_API_Endpoints {
             }
           }
         }
-      ]
-    ];
+      )
+    );
 
     return $args;
   }

@@ -14,6 +14,7 @@
 ~*
 
 wp-config.development.php
+wp-config.staging.php
 
 # ignore OS generated files
 ehthumbs.db

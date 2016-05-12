@@ -3,49 +3,49 @@
 class Clubinho_API_Helper {
 
   public static function get_children_list(WP_User $current_user) {
-    $children_list = [];
-    $children = new WP_Query([
+    $children_list = array();
+    $children = new WP_Query(array(
       'post_type'      => 'child',
       'posts_per_page' => -1,
       'post_status'    => 'publish',
       'author'         => $current_user->ID
-    ]);
+    ));
 
     if ($children->have_posts()) {
       while ($children->have_posts()) {
         $children->the_post();
-        $child = [
+        $child = array(
           'id'       => $children->post->ID,
           'name'     => get_the_title(),
           'age'      => get_field('age'),
           'avatar'   => get_field('avatar', $children->post->ID),
           'points'   => get_field('points', $children->post->ID),
-          'timeline' => []
-        ];
+          'timeline' => array()
+        );
 
         $user_events = get_field('events', $children->post->ID);
         $user_redeems = have_rows('redeemed');
-        $timeline = [];
+        $timeline = array();
 
         if ($user_events && count($user_events)) {
-          $events = new WP_Query([
+          $events = new WP_Query(array(
             'post_type'       => 'event',
             'posts_per_page'  => -1,
             'post_status'     => 'publish',
             'post__in'        => $user_events
-          ]);
+          ));
 
           if ($events->have_posts()) {
             while ($events->have_posts()) {
               $events->the_post();
 
-              array_push($timeline, [
+              array_push($timeline, array(
                 'type'   => 'event',
                 'id'     => $events->post->ID,
                 'title'  => $events->post->post_title,
                 'date'   => get_field('date') . ' ' . get_field('time'),
                 'points' => 10 // FIXME: get dynamic value
-              ]);
+              ));
             }
           }
         }
@@ -54,12 +54,12 @@ class Clubinho_API_Helper {
           while(have_rows('redeemed', $children->post->ID)) {
             the_row();
                 
-            array_push($timeline, [
+            array_push($timeline, array(
               'type'   => 'reedem',
               'prize'  => get_sub_field('prize'),
               'points' => get_sub_field('pontuation'),
               'date'   => get_sub_field('date') . " 00:00:00"
-            ]);
+            ));
           }
         }
 
@@ -93,7 +93,7 @@ class Clubinho_API_Helper {
         return new WP_Error(
         'invalid-email-for-forget-password', 
           'E-mail de usuário inválido.', 
-          ['status' => 403]
+          array('status' => 403)
         );
       }
     } else {
@@ -118,7 +118,7 @@ class Clubinho_API_Helper {
       return new WP_Error(
         'cant-send-forget-password-email', 
         'E-mail não pode ser enviado. Problema técnico. 2', 
-        ['status' => 403]
+        array('status' => 403)
       );
     }
 
@@ -132,8 +132,8 @@ class Clubinho_API_Helper {
 
     $hashed = $wp_hasher->HashPassword( $key );
     $wpdb->update( $wpdb->users, 
-      ['user_activation_key' => $hashed], 
-      ['user_login' => $user_login]
+      array('user_activation_key' => $hashed), 
+      array('user_login' => $user_login)
     );
 
     $message  = 'Alguém pediu que a senha da seguinte conta seja redefinida:' . '\r\n\r\n';
@@ -152,7 +152,7 @@ class Clubinho_API_Helper {
       return new WP_Error(
         'cant-send-forget-password-email', 
         'E-mail não pode ser enviado. Problema técnico.', 
-        ['status' => 403]
+        array('status' => 403)
       );
     }
 

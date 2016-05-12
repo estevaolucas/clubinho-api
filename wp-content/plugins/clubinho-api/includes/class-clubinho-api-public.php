@@ -24,112 +24,112 @@ class Clubinho_API_Public extends WP_REST_Controller {
   }
 
   public function register_post_types() {
-    register_post_type('child', [
-      'labels' => [
+    register_post_type('child', array(
+      'labels' => array(
         'name' => 'Crianças',
         'singular_name' => 'Criança'
-      ],
+      ),
       'public' => true,
       'has_archive' => false,
-      'rewrite' => ['slug' => 'children'],
-    ]);
+      'rewrite' => array('slug' => 'children'),
+    ));
 
-    register_post_type('event', [
-      'labels' => [
+    register_post_type('event', array(
+      'labels' => array(
         'name' => 'Eventos',
         'singular_name' => 'Evento'
-      ],
+      ),
       'public' => true,
       'has_archive' => false,
-      'rewrite' => ['slug' => 'events'],
-    ]);
+      'rewrite' => array('slug' => 'events'),
+    ));
   }
 
   public function register_routes() {
     // create user
-    register_rest_route( $this->namespace, '/create-user', [
+    register_rest_route( $this->namespace, '/create-user', array(
       'methods'             => WP_REST_Server::EDITABLE,
-      'callback'            => [$this->endpoints, 'create_user'],
+      'callback'            => array($this->endpoints, 'create_user'),
       'args'                => $this->endpoints->get_user_default_args()
-    ]);
+    ));
 
     // create/login facebook user
-    register_rest_route( $this->namespace, '/facebook', [
+    register_rest_route( $this->namespace, '/facebook', array(
       'methods'             => WP_REST_Server::EDITABLE,
-      'callback'            => [$this->endpoints, 'create_or_signin_from_facebook'],
-      'args'                => ['access_token' => ['required' => true]]
-    ]);
+      'callback'            => array($this->endpoints, 'create_or_signin_from_facebook'),
+      'args'                => array('access_token' => array('required' => true))
+    ));
 
-    register_rest_route( $this->namespace, '/me', [
+    register_rest_route( $this->namespace, '/me', array(
       // get user data
-      [
+      array(
         'methods'             => WP_REST_Server::READABLE,
-        'callback'            => [$this->endpoints, 'get_user_data'],
-        'permission_callback' => [$this->endpoints, 'user_authorized']
-      ],
+        'callback'            => array($this->endpoints, 'get_user_data'),
+        'permission_callback' => array($this->endpoints, 'user_authorized')
+      ),
       // update user data
-      [
+      array(
         'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this->endpoints, 'update_user_data'],
-        'permission_callback' => [$this->endpoints, 'user_authorized'],
+        'callback'            => array($this->endpoints, 'update_user_data'),
+        'permission_callback' => array($this->endpoints, 'user_authorized'),
         'args'                => $this->endpoints->get_user_default_args('update_user')
-      ]
-    ]);
+      )
+    ));
 
     // add child
-    register_rest_route($this->namespace, '/me/child', [
+    register_rest_route($this->namespace, '/me/child', array(
       'methods'             => WP_REST_Server::EDITABLE,
-      'callback'            => [$this->endpoints, 'create_child'],
-      'permission_callback' => [$this->endpoints, 'user_authorized'],
+      'callback'            => array($this->endpoints, 'create_child'),
+      'permission_callback' => array($this->endpoints, 'user_authorized'),
       'args'                => $this->endpoints->get_child_default_args()
-    ]);
+    ));
 
-    register_rest_route($this->namespace, '/me/child/(?P<id>\d+)', [
+    register_rest_route($this->namespace, '/me/child/(?P<id>\d+)', array(
       // update child data
-      [
+      array(
         'methods'             => WP_REST_Server::EDITABLE,
-        'callback'            => [$this->endpoints, 'update_child'],
-        'permission_callback' => [$this->endpoints, 'user_authorized'],
+        'callback'            => array($this->endpoints, 'update_child'),
+        'permission_callback' => array($this->endpoints, 'user_authorized'),
         'args'                => $this->endpoints->get_child_default_args('update_child')
-      ],
+      ),
       // remove child
-      [
+      array(
         'methods'             => WP_REST_Server::DELETABLE, 
-        'callback'            => [$this->endpoints, 'remove_child'],
-        'permission_callback' => [$this->endpoints, 'user_authorized'],
+        'callback'            => array($this->endpoints, 'remove_child'),
+        'permission_callback' => array($this->endpoints, 'user_authorized'),
         'args'                => $this->endpoints->get_child_default_args('remove_child')
-      ]
-    ]);
+      )
+    ));
 
-    register_rest_route($this->namespace, '/me/child/(?P<id>\d+)/confirm/(?P<eventId>\d+)', [
+    register_rest_route($this->namespace, '/me/child/(?P<id>\d+)/confirm/(?P<eventId>\d+)', array(
       'methods'             => WP_REST_Server::EDITABLE,
-      'callback'            => [$this->endpoints, 'confirm_event_for_child'],
-      'permission_callback' => [$this->endpoints, 'user_authorized'],
+      'callback'            => array($this->endpoints, 'confirm_event_for_child'),
+      'permission_callback' => array($this->endpoints, 'user_authorized'),
       'args'                => $this->endpoints->get_child_confirm_default_args()
-    ]);
+    ));
 
     // send link to create a new password
-    register_rest_route($this->namespace, '/forgot-password', [
+    register_rest_route($this->namespace, '/forgot-password', array(
       'methods'             => WP_REST_Server::EDITABLE,
-      'callback'            => [$this->endpoints, 'forgot_password'],
-      'args'                => ['email' => ['required' => true]],
-    ]);
+      'callback'            => array($this->endpoints, 'forgot_password'),
+      'args'                => array('email' => array('required' => true)),
+    ));
 
-    register_rest_route($this->namespace, '/get-schedule-list', [
+    register_rest_route($this->namespace, '/get-schedule-list', array(
       'methods'             => WP_REST_Server::READABLE,
-      'callback'            => [$this->endpoints, 'get_shedule'],
-      'args'                => ['size' => ['required' => false]],
-    ]);
+      'callback'            => array($this->endpoints, 'get_shedule'),
+      'args'                => array('size' => array('required' => false)),
+    ));
 
-    register_rest_route($this->namespace, 'token', [
+    register_rest_route($this->namespace, 'token', array(
       'methods'               => WP_REST_Server::EDITABLE,
-      'callback'              => [$this->endpoints, 'generate_token'],
-    ]);
+      'callback'              => array($this->endpoints, 'generate_token'),
+    ));
 
-    register_rest_route($this->namespace, 'token/validate', [
+    register_rest_route($this->namespace, 'token/validate', array(
       'methods'               => WP_REST_Server::EDITABLE,
-      'callback'              => [$this->endpoints, 'validate_token'],
-    ]);
+      'callback'              => array($this->endpoints, 'validate_token'),
+    ));
   }
 
   public function add_filters() {
@@ -167,9 +167,9 @@ class Clubinho_API_Public extends WP_REST_Controller {
   }
 
   public function filter_remove_default_endpoints($endpoints) {
-    foreach( $endpoints as $route => $data ) {
-      if (0 === stripos( $route, '/wp/v2' ) || 0 === stripos( $route, '/oembed/1.0' ) ) {
-        unset( $endpoints[ $route ] );
+    foreach($endpoints as $route => $data) {
+      if (0 === stripos($route, '/wp/v2') || 0 === stripos($route, '/oembed/1.0')) {
+        unset($endpoints[$route]);
       }
     }
 
@@ -184,7 +184,11 @@ class Clubinho_API_Public extends WP_REST_Controller {
     } else if ($column_name == 'avatar') { 
       echo get_field('avatar', $post_id);
     } else if ($column_name == 'points') { 
-      echo get_post_meta($post_id, 'points')[0];
+      $points = get_post_meta($post_id, 'points');
+
+      if (count($points)) {
+        echo $points[0];
+      }
     } 
   }
 

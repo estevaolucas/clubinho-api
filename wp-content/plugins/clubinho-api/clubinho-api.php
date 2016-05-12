@@ -17,7 +17,7 @@ if (!defined('WPINC')) {
 
 $api = null;
 
-add_action('init', function() {
+function clubinho_init() {
   if (!class_exists( 'WP_REST_Controller')) {
     return;
   }
@@ -27,19 +27,23 @@ add_action('init', function() {
   global $api;
   $api = new Clubinho_API_Public();
   $api->run();
-}, 0);
+}
 
-add_action('rest_api_init', function() {
+add_action('init', 'clubinho_init', 0);
+
+function clubinho_rest_api_init() {
   global $api;
   $api->register_routes();
-}, 0);
+}
 
-register_activation_hook(__FILE__, function() {
-  require_once plugin_dir_path(__FILE__) . 'includes/class-clubinho-api-activator.php';
-  Clubinho_API_Activator::activate();
-});
+add_action('rest_api_init', 'clubinho_rest_api_init', 0);
 
-register_deactivation_hook(__FILE__, function() {
-  require_once plugin_dir_path(__FILE__) . 'includes/class-clubinho-api-deactivator.php';
-  Clubinho_API_Deactivator::deactivate();
-});
+// register_activation_hook(__FILE__, function() {
+//   require_once plugin_dir_path(__FILE__) . 'includes/class-clubinho-api-activator.php';
+//   Clubinho_API_Activator::activate();
+// });
+
+// register_deactivation_hook(__FILE__, function() {
+//   require_once plugin_dir_path(__FILE__) . 'includes/class-clubinho-api-deactivator.php';
+//   Clubinho_API_Deactivator::deactivate();
+// });
