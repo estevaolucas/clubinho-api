@@ -90,7 +90,7 @@ class Clubinho_API_Endpoints {
         $user_name = $user->user_login;
       } 
 
-      if (!$user_id && $email_exists == false) {
+      if (!isset($user_id) && !$email_exists) {
         $password = wp_generate_password(12, false);
 
         $data = array(
