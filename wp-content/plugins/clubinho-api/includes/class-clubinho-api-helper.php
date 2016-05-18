@@ -210,4 +210,17 @@ class Clubinho_API_Helper {
       WHERE `meta_key` LIKE 'field_%' AND `meta_value` LIKE '%\"name\";s:$length:\"$field_name\";%';
       ");
   }
+
+  public static function excerpt($limit) {
+    $excerpt = get_the_excerpt();
+    $excerpt = preg_replace(" (\[.*?\])",'',$excerpt);
+    $excerpt = strip_shortcodes($excerpt);
+    $excerpt = strip_tags($excerpt);
+    $excerpt = substr($excerpt, 0, $limit);
+    $excerpt = substr($excerpt, 0, strripos($excerpt, ' '));
+    $excerpt = trim(preg_replace('/\s+/', ' ', $excerpt));
+    $excerpt = $excerpt . '...';
+
+    return $excerpt;
+  }
 }

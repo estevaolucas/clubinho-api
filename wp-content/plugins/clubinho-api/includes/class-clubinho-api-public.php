@@ -137,6 +137,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
     $this->loader->add_filter('manage_edit-child_columns', $this, 'filter_admin_manage_coluns');
     $this->loader->add_filter('rest_url_prefix', $this, 'filter_api_prefix');
     $this->loader->add_filter('rest_endpoints', $this, 'filter_remove_default_endpoints');
+    // $this->loader->add_filter('excerpt_length', $this, 'filter_excerpt_length');
   }
 
   public function add_actions() {
@@ -174,6 +175,10 @@ class Clubinho_API_Public extends WP_REST_Controller {
     }
 
     return $endpoints;
+  }
+
+  public function filter_excerpt_length() {
+    return 100;
   }
 
   public function action_manage_coluns($column_name, $post_id) {

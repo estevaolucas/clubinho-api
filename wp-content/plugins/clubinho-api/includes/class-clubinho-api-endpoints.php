@@ -368,14 +368,17 @@ class Clubinho_API_Endpoints {
     ));
 
     if ($posts->have_posts()) {
+      global $more;
+
       while ($posts->have_posts()) {
         $posts->the_post();
+        $more = 1;
 
         array_push($events, array(
           'id'      => get_the_ID(),
           'date'    => get_field('date') . ' ' . get_field('time'),
           'title'   => get_the_title(),
-          'excerpt' => get_the_excerpt(),
+          'excerpt' => Helper::excerpt(100),
           'content' => get_the_content(),
           'author'  => get_field('author'),
           'cover'   => get_field('cover')
