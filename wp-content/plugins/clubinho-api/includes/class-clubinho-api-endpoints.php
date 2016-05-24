@@ -267,7 +267,8 @@ class Clubinho_API_Endpoints {
     update_field(Helper::get_acf_key('events'), $events, $id);
 
     $data = $this->prepare_for_response(array(
-      'message' => 'Evento confirmado'
+      'message' => 'Evento confirmado',
+      'children' => Helper::get_children_list($current_user)
     ));
 
     return new WP_REST_Response($data, 200);
@@ -542,7 +543,7 @@ class Clubinho_API_Endpoints {
       'avatar' => array(
         'required' => true,
         'validate_callback' => function($avatar, $request, $key) {
-          $avatars = array('ana', 'luiz', 'maria');
+          $avatars = array('ana', 'luiz', 'maria', 'rico');
 
           if (!in_array($avatar, $avatars)) {
             return new WP_Error('-', 'Avatar não válido');
