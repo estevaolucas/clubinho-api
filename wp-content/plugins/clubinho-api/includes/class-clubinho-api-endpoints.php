@@ -1,5 +1,7 @@
 <?php
 
+date_default_timezone_set('America/Sao_Paulo');
+
 class Clubinho_API_Endpoints {
 
   public function __construct() {
@@ -352,7 +354,7 @@ class Clubinho_API_Endpoints {
     }
   }
 
-  public function get_shedule($request) {
+  public function get_schedule($request) {
     $events = array();
     $posts = new WP_Query(array(
       'post_type'      => 'event',

@@ -117,7 +117,7 @@ class Clubinho_API_Public extends WP_REST_Controller {
 
     register_rest_route($this->namespace, '/get-schedule-list', array(
       'methods'             => WP_REST_Server::READABLE,
-      'callback'            => array($this->endpoints, 'get_shedule'),
+      'callback'            => array($this->endpoints, 'get_schedule'),
       'args'                => array('size' => array('required' => false)),
     ));
 
