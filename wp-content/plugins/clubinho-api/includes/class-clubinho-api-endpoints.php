@@ -381,7 +381,7 @@ class Clubinho_API_Endpoints {
           'id'      => get_the_ID(),
           'date'    => get_field('date') . ' ' . get_field('time'),
           'title'   => get_the_title(),
-          'excerpt' => Helper::excerpt(100),
+          'excerpt' => Helper::excerpt(140),
           'content' => get_the_content(),
           'author'  => get_field('author'),
           'cover'   => get_field('cover')
